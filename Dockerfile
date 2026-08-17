@@ -12,9 +12,16 @@
 #   docker pull python:3.14-slim && docker image inspect python:3.14-slim \
 #     --format '{{index .RepoDigests 0}}'
 ARG PYTHON_IMAGE=python@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4
+# syft 1.51.0, used to record what ends up in the image (see the "sbom" stage)
+ARG SYFT_IMAGE=anchore/syft@sha256:678bfa565b60f747aac0f8e964fe5588a24445b8d0a480e91f6efd70020dfbb0
 ARG UV_VERSION=0.12.5
 ARG APP_UID=65532
 ARG APP_GID=65532
+# Traceability: pass these in to record where the image came from, e.g.
+#   docker compose build --build-arg VCS_REF=$(git rev-parse --short HEAD)
+ARG VCS_REF=unknown
+ARG APP_VERSION=unknown
+ARG BUILD_DATE=unknown
 
 
 # --------------------------------------------------------------------------
@@ -61,9 +68,9 @@ RUN uv sync --frozen --no-dev
 
 
 # --------------------------------------------------------------------------
-# Runtime: no compilers, no package manager, no root
+# Runtime base: no compilers, no package manager, no root
 # --------------------------------------------------------------------------
-FROM ${PYTHON_IMAGE} AS runtime
+FROM ${PYTHON_IMAGE} AS runtime-base
 
 ARG APP_UID
 ARG APP_GID
@@ -102,6 +109,51 @@ COPY --from=builder --chown=root:root /app /app
 # status command needs a name of its own on PATH.
 RUN printf '#!/bin/sh\nexec /opt/venv/bin/kronoterm2mqtt_app health "$@"\n' > /usr/local/bin/health && \
     chmod 0755 /usr/local/bin/health
+
+
+# --------------------------------------------------------------------------
+# SBOM: an inventory of everything the runtime image contains
+# --------------------------------------------------------------------------
+# Generated here rather than as a BuildKit attestation, because attestations
+# need the containerd image store; a file in the image works with any builder.
+FROM ${SYFT_IMAGE} AS sbom
+
+COPY --from=runtime-base / /scan
+
+# "installed" keeps the catalogers that report what is actually present (dpkg
+# database, installed Python distributions) and leaves out the "declared" ones,
+# which would read uv.lock and list dev dependencies that are not in the image -
+# false positives for anything scanning this SBOM. File metadata is off: this is
+# an inventory of packages, not of every file.
+ENV SYFT_FILE_METADATA_SELECTION=none
+RUN ["/syft", "scan", "dir:/scan", "--source-name", "kronoterm2mqtt", \
+     "--select-catalogers", "installed", \
+     "-o", "cyclonedx-json@1.6=/sbom.cdx.json"]
+
+
+# --------------------------------------------------------------------------
+# Runtime: the base image plus its own bill of materials
+# --------------------------------------------------------------------------
+FROM runtime-base AS runtime
+
+ARG APP_UID
+ARG APP_GID
+ARG VCS_REF
+ARG APP_VERSION
+ARG BUILD_DATE
+
+COPY --from=sbom --chown=root:root /sbom.cdx.json /usr/share/kronoterm2mqtt/sbom.cdx.json
+
+LABEL org.opencontainers.image.title="kronoterm2mqtt" \
+      org.opencontainers.image.description="Sends MQTT events from a KRONOTERM heat pump" \
+      org.opencontainers.image.source="https://github.com/kosl/kronoterm2mqtt" \
+      org.opencontainers.image.documentation="https://github.com/kosl/kronoterm2mqtt#docker" \
+      org.opencontainers.image.licenses="GPL-3.0-or-later" \
+      org.opencontainers.image.version="${APP_VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      si.kronoterm2mqtt.sbom.path="/usr/share/kronoterm2mqtt/sbom.cdx.json" \
+      si.kronoterm2mqtt.sbom.format="CycloneDX JSON"
 
 WORKDIR /app
 USER ${APP_UID}:${APP_GID}

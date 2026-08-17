@@ -1,6 +1,13 @@
 services:
   kronoterm2mqtt:
-    build: .
+    build:
+      context: .
+      args:
+        # Recorded as OCI labels, so a running container can be traced back to a
+        # commit: VCS_REF=$(git rev-parse --short HEAD) docker compose build
+        VCS_REF: ${VCS_REF:-unknown}
+        APP_VERSION: ${APP_VERSION:-unknown}
+        BUILD_DATE: ${BUILD_DATE:-unknown}
     image: kronoterm2mqtt:local
     container_name: kronoterm2mqtt
     restart: unless-stopped
