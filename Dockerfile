@@ -8,10 +8,15 @@
 #  * no runtime bootstrap: the venv is fully built at image build time, so the
 #    container needs neither a writable /app nor network access to PyPI
 #
+# Alpine rather than Debian slim on purpose: the Debian base ships packages this
+# app never executes (perl, ncurses, gzip) whose open advisories Debian marks as
+# "affected" or "fix_deferred", so they cannot be patched away. On the same build,
+# Trivy reported 14 HIGH/CRITICAL for the Debian image and 0 for this one.
+#
 # Rebuild the digest with:
-#   docker pull python:3.14-slim && docker image inspect python:3.14-slim \
+#   docker pull python:3.14-alpine && docker image inspect python:3.14-alpine \
 #     --format '{{index .RepoDigests 0}}'
-ARG PYTHON_IMAGE=python@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4
+ARG PYTHON_IMAGE=python@sha256:05b2b8b732ecd268fee8727a369f936f022d1321b59befd13c30ede22769dcdc
 # syft 1.51.0, used to record what ends up in the image (see the "sbom" stage)
 ARG SYFT_IMAGE=anchore/syft@sha256:678bfa565b60f747aac0f8e964fe5588a24445b8d0a480e91f6efd70020dfbb0
 ARG UV_VERSION=0.12.5
@@ -39,12 +44,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_NO_CACHE=1
 
-# Build dependencies for source-only wheels. They never reach the final image.
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        gcc \
-        libc6-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Every current dependency ships a musllinux wheel, so nothing is compiled here.
+# The toolchain stays for the day one of them does not; it never reaches the
+# final image either way.
+RUN apk add --no-cache gcc musl-dev linux-headers
 
 RUN pip install --no-cache-dir "uv==${UV_VERSION}"
 
@@ -82,23 +85,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Latest OS security patches, an unprivileged account, and the config directory
 # the settings loader expects (~/.config/kronoterm2mqtt).
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    rm -rf /var/lib/apt/lists/* && \
-    groupadd --gid "${APP_GID}" nonroot && \
-    useradd --uid "${APP_UID}" --gid "${APP_GID}" \
-            --home-dir /home/nonroot --create-home \
-            --shell /usr/sbin/nologin nonroot && \
+RUN apk upgrade --no-cache && \
+    addgroup -g "${APP_GID}" nonroot && \
+    adduser -u "${APP_UID}" -G nonroot -h /home/nonroot -s /sbin/nologin -D nonroot && \
     mkdir -p /home/nonroot/.config/kronoterm2mqtt && \
     chown -R "${APP_UID}:${APP_GID}" /home/nonroot && \
     # Strip setuid/setgid bits: nothing in here needs privilege escalation
     find / -xdev -perm /6000 -type f -exec chmod a-s {} + || true && \
-    # Remove package managers so an attacker cannot install tooling. The dpkg
-    # database stays, so image scanners (Trivy, Grype, docker scout) still work.
+    # Remove the package managers so an attacker cannot install tooling. The apk
+    # database stays, so image scanners (Trivy, Grype, syft) still work.
     rm -rf /usr/local/lib/python*/site-packages/pip* /usr/local/bin/pip* \
-           /usr/bin/apt /usr/bin/apt-get /usr/bin/apt-cache /usr/bin/apt-config \
-           /usr/bin/apt-key /usr/bin/apt-mark /usr/bin/dpkg /usr/bin/dpkg-deb \
-           /usr/bin/dpkg-query /usr/bin/dpkg-split /usr/bin/dpkg-trigger
+           /sbin/apk /etc/apk/keys
 
 # Application and venv stay root-owned and read-only for the app user, so the
 # process cannot rewrite its own code.
@@ -120,7 +117,7 @@ FROM ${SYFT_IMAGE} AS sbom
 
 COPY --from=runtime-base / /scan
 
-# "installed" keeps the catalogers that report what is actually present (dpkg
+# "installed" keeps the catalogers that report what is actually present (the apk
 # database, installed Python distributions) and leaves out the "declared" ones,
 # which would read uv.lock and list dev dependencies that are not in the image -
 # false positives for anything scanning this SBOM. File metadata is off: this is

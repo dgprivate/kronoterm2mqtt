@@ -173,14 +173,14 @@ The image and compose file follow least-privilege practice (CIS Docker Benchmark
 | Measure | Where |
 |---|---|
 | Multi-stage build - no compilers or package manager in the final image | `Dockerfile` |
-| Base image pinned by SHA256 digest | `Dockerfile` (`ARG PYTHON_IMAGE`) |
+| Alpine base, pinned by SHA256 digest - the Debian base carried 14 HIGH/CRITICAL advisories Debian marks as unfixable | `Dockerfile` (`ARG PYTHON_IMAGE`) |
 | Runs as unprivileged user `nonroot` (UID/GID 65532) | `Dockerfile` + `user:` in compose |
 | Application code and venv are root-owned, so the process cannot rewrite itself | `Dockerfile` |
 | All Linux capabilities dropped (`CapEff` is `0`) | `cap_drop: [ALL]` |
 | Privilege escalation blocked, setuid bits stripped from the image | `no-new-privileges:true` |
 | Immutable root filesystem, only a small `noexec` tmpfs on `/tmp` | `read_only: true` |
 | No runtime dependency installation - the venv is complete at build time | `Dockerfile` |
-| No package managers (`pip`, `apt`, `dpkg`) in the final image; the dpkg database is kept so image scanners still work | `Dockerfile` |
+| No package managers (`pip`, `apk`) in the final image; the apk database is kept so image scanners still work | `Dockerfile` |
 | PID, memory, CPU limits and log rotation | compose |
 | Secrets (`config/`, `*.key`, `*.pem`) kept out of the build context | `.dockerignore` |
 | CycloneDX SBOM of the installed packages baked into the image, plus OCI labels | `Dockerfile` |
@@ -194,7 +194,7 @@ docker compose run --rm --entrypoint /bin/sh kronoterm2mqtt -c 'id; grep CapEff 
 
 ### What is inside the image
 
-Every build records its own inventory, so you do not have to trust a rebuild to find out what was shipped. The image carries a CycloneDX SBOM of everything installed in it - Debian packages from the dpkg database and the Python distributions in the virtualenv:
+Every build records its own inventory, so you do not have to trust a rebuild to find out what was shipped. The image carries a CycloneDX SBOM of everything installed in it - Alpine packages from the apk database and the Python distributions in the virtualenv:
 
 ```bash
 docker run --rm --entrypoint cat kronoterm2mqtt:local \
@@ -210,7 +210,7 @@ grype sbom:sbom.json
 trivy sbom sbom.json
 ```
 
-Expect the numbers to differ between tools, and between the SBOM and the image itself. On the same build, `grype sbom:` reported 31 HIGH/CRITICAL, `trivy image` 14, and `trivy sbom` 1 - `trivy sbom` currently matches far less than its own image scan does. Treat the SBOM as the record of what is inside, and scan the image directly when you want Trivy's verdict:
+Expect the numbers to differ between tools, and between the SBOM and the image itself. Numbers from the current build: `trivy image` reports 0 HIGH/CRITICAL and `grype sbom:` reports 1 - CVE-2026-15308, a denial of service in CPython's `html.parser`, which this app never uses and which is fixed only in Python 3.15. Note also that `trivy sbom` currently matches far less than `trivy image` does on the same build. Treat the SBOM as the record of what is inside, and scan the image directly when you want Trivy's verdict:
 
 ```bash
 trivy image kronoterm2mqtt:local
@@ -606,6 +606,7 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.17...main)
+  * 2026-08-17 - Build on Alpine, which has no unfixable advisories to carry
   * 2026-08-17 - Record what the image contains: SBOM and OCI labels
   * 2026-08-17 - Drop Python 3.11 and update every dependency to its latest release
   * 2026-08-17 - Harden the Docker image and document it
