@@ -50,7 +50,7 @@ The output of `./cli.py --help` looks like:
 
 [comment]: <> (✂✂✂ auto generated main help start ✂✂✂)
 ```
-usage: ./cli.py [-h] {edit-settings,print-registers,print-settings,print-values,probe-usb-ports,publish-loop,systemd-debug,systemd-remove,systemd-setup,systemd-status,systemd-stop,test-mqtt-connection,version}
+usage: ./cli.py [-h] {edit-settings,health,print-registers,print-settings,print-values,probe-usb-ports,publish-loop,systemd-debug,systemd-remove,systemd-setup,systemd-status,systemd-stop,test-mqtt-connection,version}
 
 
 
@@ -60,6 +60,7 @@ usage: ./cli.py [-h] {edit-settings,print-registers,print-settings,print-values,
 ╭─ subcommands ───────────────────────────────────────────────────────────────────────────────────────────────╮
 │ (required)                                                                                                  │
 │   • edit-settings         Edit the settings file. On first call: Create the default one.                    │
+│   • health                Show the status of the running publish loop (MQTT, Modbus, publishing)            │
 │   • print-registers       Print RAW modbus register data                                                    │
 │   • print-settings        Display (anonymized) MQTT server username and password                            │
 │   • print-values          Print all values from the definition                                              │
@@ -160,15 +161,46 @@ Create your configuration at `config/kronoterm2mqtt.toml` (see [Setup](#setup) f
 docker compose up -d
 ```
 
-### Configuration
+### Security hardening
 
-The `docker-compose.yml` mounts `./config` into the container as the settings directory. Place your `kronoterm2mqtt.toml` there before starting.
+The image and compose file follow least-privilege practice (CIS Docker Benchmark, NIST SP 800-190):
 
-To edit settings interactively inside the container:
+| Measure | Where |
+|---|---|
+| Multi-stage build - no compilers or package manager in the final image | `Dockerfile` |
+| Base image pinned by SHA256 digest | `Dockerfile` (`ARG PYTHON_IMAGE`) |
+| Runs as unprivileged user `nonroot` (UID/GID 65532) | `Dockerfile` + `user:` in compose |
+| Application code and venv are root-owned, so the process cannot rewrite itself | `Dockerfile` |
+| All Linux capabilities dropped (`CapEff` is `0`) | `cap_drop: [ALL]` |
+| Privilege escalation blocked, setuid bits stripped from the image | `no-new-privileges:true` |
+| Immutable root filesystem, only a small `noexec` tmpfs on `/tmp` | `read_only: true` |
+| No runtime dependency installation - the venv is complete at build time | `Dockerfile` |
+| No package managers (`pip`, `apt`, `dpkg`) in the final image; the dpkg database is kept so image scanners still work | `Dockerfile` |
+| PID, memory, CPU limits and log rotation | compose |
+| Secrets (`config/`, `*.key`, `*.pem`) kept out of the build context | `.dockerignore` |
+
+Verify a running container with:
 
 ```bash
-docker compose run --rm kronoterm2mqtt edit-settings
+docker compose run --rm --entrypoint /bin/sh kronoterm2mqtt -c 'id; grep CapEff /proc/self/status'
+# uid=65532(nonroot) gid=65532(nonroot) ... CapEff: 0000000000000000
 ```
+
+Two things are left to the host, because they are daemon-wide rather than per-container: enabling user namespace remapping (`"userns-remap": "default"` in `/etc/docker/daemon.json`) and scanning the built image, e.g. `docker scout cves kronoterm2mqtt:local` or `trivy image kronoterm2mqtt:local`.
+
+### Configuration
+
+The `docker-compose.yml` mounts `./config` **read-only** into the container at `/home/nonroot/.config/kronoterm2mqtt`. Place your `kronoterm2mqtt.toml` there before starting.
+
+Edit `config/kronoterm2mqtt.toml` on the host with your own editor - the image deliberately ships without one. To generate a default settings file, mount the directory writable for a single run:
+
+```bash
+docker compose run --rm \
+  -v "$PWD/config:/home/nonroot/.config/kronoterm2mqtt" \
+  kronoterm2mqtt edit-settings
+```
+
+This writes `config/kronoterm2mqtt.toml` and then reports that it found no editor - expected, and harmless.
 
 ### Testing MQTT connection
 
@@ -194,16 +226,101 @@ certfile = "/certs/client.crt"
 keyfile = "/certs/client.key"
 ```
 
-The `docker-compose.yml` mounts `./config/certs` to `/certs` inside the container.
+The `docker-compose.yml` mounts `./config/certs` read-only to `/certs` inside the container. Since the container runs as UID 65532, the certificates must be readable by that user:
+
+```bash
+sudo chown -R 65532:65532 config/certs
+chmod 0644 config/certs/*.crt
+chmod 0600 config/certs/*.key
+```
 
 ### Serial devices (Modbus RTU)
 
-If using a USB RS485 adapter, uncomment the `devices` section in `docker-compose.yml`:
+Not needed for Modbus/TCP. If using a USB RS485 adapter, uncomment the `devices` and `group_add` sections in `docker-compose.yml`. Because the container is unprivileged, it must join the group that owns the device on the host:
+
+```bash
+stat -c '%G %g' /dev/ttyUSB0   # e.g. "dialout 20"
+```
 
 ```yaml
 devices:
   - /dev/ttyUSB0:/dev/ttyUSB0
+group_add:
+  - "20"
 ```
+
+### Health check
+
+The publish loop serves its own status on `http://127.0.0.1:8099/health` **inside** the container - the port is not published, so nothing is reachable from outside. The image's `HEALTHCHECK` polls it every 30 s, which makes the state visible in `docker ps`:
+
+```bash
+$ docker ps
+NAMES            STATUS
+kronoterm2mqtt   Up 2 minutes (healthy)
+```
+
+For the details, ask the container itself:
+
+```bash
+$ docker compose exec kronoterm2mqtt health
+
+HEALTHY
+ MQTT          OK        mqtt.example.com
+ Last publish  1.2s ago  100 entities
+ Modbus        OK        192.168.1.2:502
+ Last read     1.3s ago
+ Failed reads  0
+ Uptime        32s
+```
+
+When something breaks, the command names it and exits non-zero:
+
+```
+UNHEALTHY
+  - last Modbus read was 26.1s ago
+  - last publish was 26.1s ago
+ Failed reads  7          Giving up reading 9 registers at 2053
+```
+
+A container counts as unhealthy when the MQTT client is disconnected, or the last successful Modbus read or publish is older than `stale_after_seconds`. Configure it in the settings:
+
+```toml
+[health]
+enabled = true
+host = "127.0.0.1"
+port = 8099
+stale_after_seconds = 60
+restart_after_seconds = 300  # 0 disables the watchdog
+```
+
+### Automatic restart
+
+Docker does not restart a container just because its `HEALTHCHECK` fails - it only marks it unhealthy. kronoterm2mqtt therefore watches its own state: after `restart_after_seconds` of continuous trouble it says why and ends the process, and the `restart: unless-stopped` policy starts it again.
+
+```
+Unhealthy for 300s: last Modbus read was 310.4s ago - exiting for a restart
+```
+
+The recovery stays inside the container this way. A watchdog container such as [autoheal](https://github.com/willfarrell/docker-autoheal) would do the same job, but only in exchange for the Docker socket - effectively root on the host - which defeats the hardening above.
+
+Set `restart_after_seconds = 0` if you would rather have the container stay up and unhealthy, e.g. while debugging.
+
+### Modbus/TCP gateways that greet the connection
+
+Many serial-to-TCP gateways send a "registration packet" - usually their MAC address - as soon as a client connects. Those bytes are not a Modbus frame, and a strict MBAP parser reads them as the beginning of one, which desynchronizes every following response:
+
+```
+ERROR    Invalid Modbus protocol id: 3729
+ERROR    Repeating....
+```
+
+kronoterm2mqtt discards whatever arrives before the first request and logs what it dropped:
+
+```
+WARNING  Discarded 6 unsolicited bytes sent by the Modbus gateway before the first request: 28 7a 0e 91 5e a9
+```
+
+If your gateway allows it, switching its "Registration Packet" setting off is still the cleaner fix.
 
 ### Viewing logs
 
@@ -441,6 +558,10 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.17...main)
+  * 2026-08-17 - Harden the Docker image and document it
+  * 2026-08-17 - Report and act on the health of the publish loop
+  * 2026-08-17 - Keep the publish loop alive through Modbus trouble
+  * 2026-06-24 - More starlette audits
   * 2026-06-09 - Fix tests
   * 2026-05-26 - Add fixed pyetera
   * 2026-05-26 - Update environment and fix expander devel
