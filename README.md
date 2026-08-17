@@ -100,7 +100,10 @@ changing `kronoterm2mqtt/definitions/kronoterm_ksm.toml` individual
 `[[sensor]]` entries to something like `[[sensor_disabled]]` so that
 it will be skipped during definitions scan. There are quite some
 number of disabled sensors that can be shown and the TOML file can get
-more sensors if required. Note that you need to have at least one of
+more sensors if required. The register numbers come from KRONOTERM's own
+documentation, kept in the repository as
+[Modbus naslovi za BMS Regulacija TT3000.pdf](Modbus%20naslovi%20za%20BMS%20Regulacija%20TT3000.pdf)
+(see [References](#references)). Note that you need to have at least one of
 each sensor type enabled in your TOML file (`[[enum_sensor]]`,
 `[[sensor]]]`, `[[binary_sensor]]`). Controls (`[[switch]]`,
 `[[select]]`) are optional and can be disabled completely.
@@ -606,6 +609,7 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.17...main)
+  * 2026-08-17 - Keep the TT3000 register documentation in the repository
   * 2026-08-17 - Build on Alpine, which has no unfixable advisories to carry
   * 2026-08-17 - Record what the image contains: SBOM and OCI labels
   * 2026-08-17 - Drop Python 3.11 and update every dependency to its latest release
@@ -821,4 +825,4 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 
 - [Navodila za priklop in uporabo CNS sistema.pdf](https://github.com/user-attachments/files/22581626/Navodila.za.priklop.in.uporabo.CNS.sistema.pdf) Kronoterm Modbus RTU description (in Slovene) obtained from Kronoterm support
 - [Installation and Operating Manual for BMS System.pdf](https://github.com/user-attachments/files/17962066/Installation.and.Operating.Manual.for.BMS.System.pdf) Kronoterm Modbus V3.13-1 RTU description obtained from Kronoterm support
-- [1122-16-17-4021-05_Modbus_BMS_TT3000web.pdf](https://github.com/user-attachments/files/17962067/22-16-17-4021-05_Modbus_BMS_TT3000web.pdf) Modbus naslovi za BMS; Regulacija TT3000 (in Slovene) obtained from Kronoterm support
+- [Modbus naslovi za BMS Regulacija TT3000.pdf](Modbus%20naslovi%20za%20BMS%20Regulacija%20TT3000.pdf) Modbus naslovi za BMS; Regulacija TT3000 (in Slovene) obtained from Kronoterm support. Kept in the repository because the register definitions are derived from it and attachment links do not last; originally attached as [1122-16-17-4021-05_Modbus_BMS_TT3000web.pdf](https://github.com/user-attachments/files/17962067/22-16-17-4021-05_Modbus_BMS_TT3000web.pdf)
