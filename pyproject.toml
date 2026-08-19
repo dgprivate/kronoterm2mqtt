@@ -7,10 +7,10 @@ readme = "README.md"
 authors = [
     {name = 'Leon Kos', email = 'leon.kos@lecad.fs.uni-lj.si'}
 ]
-requires-python = ">=3.11, <4"
+requires-python = ">=3.12, <4"
 dependencies = [
     "ha-services >= 2.10.0",  # https://github.com/jedie/ha-services
-    "cli-base-utilities>=0.17.0,<=0.27.4",  # https://github.com/jedie/cli-base-utilities
+    "cli-base-utilities>=0.17.0",  # https://github.com/jedie/cli-base-utilities
     "pymodbus[serial] >= 3.10.0",  # https://github.com/pymodbus-dev/pymodbus/
     "bx_py_utils",  # https://github.com/boxine/bx_py_utils
     "tyro",  # https://github.com/brentyi/tyro
@@ -108,7 +108,7 @@ command_line = '-m unittest --verbose --locals --buffer'
 [tool.coverage.report]
 omit = ['.*', '*/tests/*']
 skip_empty = true
-fail_under = 25
+fail_under = 80
 show_missing = true
 exclude_lines = [
     'if self.debug:',

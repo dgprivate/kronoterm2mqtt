@@ -184,6 +184,15 @@ class ExpanderMqttHandler:
     def loop_switch_callback(self, *, client: Client, component: Select, old_state: str, new_state: str):
         """Switches on/off (manually) loop."""
         loop_number = self.loop_states.index(component)
+
+        # Parse before setting the state: an unknown payload used to raise
+        # InvalidStateValue out of the MQTT callback thread, past the handler below.
+        try:
+            new_state_e = self.WorkingMode(new_state)
+        except ValueError:
+            logger.error(f'Invalid state: {new_state!r}')
+            return
+
         component.set_state(new_state)
         component.publish_state(client)
 
@@ -194,22 +203,19 @@ class ExpanderMqttHandler:
         # else: # ON
         #     self.taskgroup.create_task(self.etera.set_relay(loop_number, True))
 
-        try:
-            new_state_e = self.WorkingMode(new_state)
+        # Reset expedited heating timer
+        self.expedited_heating_timer[loop_number] = None
 
-            # Reset expedited heating timer
-            self.expedited_heating_timer[loop_number] = None
-
-            if new_state_e == self.WorkingMode.OFF.value or new_state_e == self.WorkingMode.ON.value:
-                pass
-            elif new_state_e == self.WorkingMode.EXPEDITED.value:
-                self.expedited_heating_timer[loop_number] = time.monotonic()
-                print(f'Expedited heating for {component.name} is started!')
-            elif new_state_e == self.WorkingMode.STANDBY.value:
-                print(f'Standby mode for {component.name} is started!')
-        except ValueError:
-            logger.error(f'Invalid state: {new_state!r}')
-            return
+        # WorkingMode(new_state) is an enum member, so compare it with members:
+        # against .value it never matched and the expedited timer stayed unset,
+        # which kept the five hour switch-off below from ever running.
+        if new_state_e in (self.WorkingMode.OFF, self.WorkingMode.ON):
+            pass
+        elif new_state_e == self.WorkingMode.EXPEDITED:
+            self.expedited_heating_timer[loop_number] = time.monotonic()
+            print(f'Expedited heating for {component.name} is started!')
+        elif new_state_e == self.WorkingMode.STANDBY:
+            print(f'Standby mode for {component.name} is started!')
 
     def get_loop_target_temperature(
         self,

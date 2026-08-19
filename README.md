@@ -50,29 +50,35 @@ The output of `./cli.py --help` looks like:
 
 [comment]: <> (✂✂✂ auto generated main help start ✂✂✂)
 ```
-usage: ./cli.py [-h] {edit-settings,print-registers,print-settings,print-values,probe-usb-ports,publish-loop,systemd-debug,systemd-remove,systemd-setup,systemd-status,systemd-stop,test-mqtt-connection,version}
+usage: ./cli.py [-h] {edit-settings,health,print-registers,print-settings,print-values,probe-usb-ports,publish-loop,systemd-debug,systemd-remove,systemd-setup,systemd-status,systemd-stop,test-mqtt-connection,version}
 
 
 
-╭─ options ───────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ -h, --help                show this help message and exit                                                   │
-╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ subcommands ───────────────────────────────────────────────────────────────────────────────────────────────╮
-│ (required)                                                                                                  │
-│   • edit-settings         Edit the settings file. On first call: Create the default one.                    │
-│   • print-registers       Print RAW modbus register data                                                    │
-│   • print-settings        Display (anonymized) MQTT server username and password                            │
-│   • print-values          Print all values from the definition                                              │
-│   • probe-usb-ports       Probe through the USB ports and print the values from definition                  │
-│   • publish-loop          Publish KRONOTERM registers to Home Assistant MQTT                                │
-│   • systemd-debug         Print Systemd service template + context + rendered file content.                 │
-│   • systemd-remove        Remove Systemd service file. (May need sudo)                                      │
-│   • systemd-setup         Write Systemd service file, enable it and (re-)start the service. (May need sudo) │
-│   • systemd-status        Display status of systemd service. (May need sudo)                                │
-│   • systemd-stop          Stops the systemd service. (May need sudo)                                        │
-│   • test-mqtt-connection  Test connection to MQTT Server                                                    │
-│   • version               Print version and exit                                                            │
-╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ options ──────────────────────────────────────────────────────────────────────────────╮
+│ -h, --help                show this help message and exit                              │
+╰────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ subcommands ──────────────────────────────────────────────────────────────────────────╮
+│ (required)                                                                             │
+│   • edit-settings         Edit the settings file. On first call: Create the default    │
+│                           one.                                                         │
+│   • health                Show the status of the running publish loop (MQTT, Modbus,   │
+│                           publishing)                                                  │
+│   • print-registers       Print RAW modbus register data                               │
+│   • print-settings        Display (anonymized) MQTT server username and password       │
+│   • print-values          Print all values from the definition                         │
+│   • probe-usb-ports       Probe through the USB ports and print the values from        │
+│                           definition                                                   │
+│   • publish-loop          Publish KRONOTERM registers to Home Assistant MQTT           │
+│   • systemd-debug         Print Systemd service template + context + rendered file     │
+│                           content.                                                     │
+│   • systemd-remove        Remove Systemd service file. (May need sudo)                 │
+│   • systemd-setup         Write Systemd service file, enable it and (re-)start the     │
+│                           service. (May need sudo)                                     │
+│   • systemd-status        Display status of systemd service. (May need sudo)           │
+│   • systemd-stop          Stops the systemd service. (May need sudo)                   │
+│   • test-mqtt-connection  Test connection to MQTT Server                               │
+│   • version               Print version and exit                                       │
+╰────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 [comment]: <> (✂✂✂ auto generated main help end ✂✂✂)
 
@@ -94,7 +100,10 @@ changing `kronoterm2mqtt/definitions/kronoterm_ksm.toml` individual
 `[[sensor]]` entries to something like `[[sensor_disabled]]` so that
 it will be skipped during definitions scan. There are quite some
 number of disabled sensors that can be shown and the TOML file can get
-more sensors if required. Note that you need to have at least one of
+more sensors if required. The register numbers come from KRONOTERM's own
+documentation, kept in the repository as
+[Modbus naslovi za BMS Regulacija TT3000.pdf](Modbus%20naslovi%20za%20BMS%20Regulacija%20TT3000.pdf)
+(see [References](#references)). Note that you need to have at least one of
 each sensor type enabled in your TOML file (`[[enum_sensor]]`,
 `[[sensor]]]`, `[[binary_sensor]]`). Controls (`[[switch]]`,
 `[[select]]`) are optional and can be disabled completely.
@@ -160,15 +169,86 @@ Create your configuration at `config/kronoterm2mqtt.toml` (see [Setup](#setup) f
 docker compose up -d
 ```
 
-### Configuration
+### Security hardening
 
-The `docker-compose.yml` mounts `./config` into the container as the settings directory. Place your `kronoterm2mqtt.toml` there before starting.
+The image and compose file follow least-privilege practice (CIS Docker Benchmark, NIST SP 800-190):
 
-To edit settings interactively inside the container:
+| Measure | Where |
+|---|---|
+| Multi-stage build - no compilers or package manager in the final image | `Dockerfile` |
+| Alpine base, pinned by SHA256 digest - the Debian base carried 14 HIGH/CRITICAL advisories Debian marks as unfixable | `Dockerfile` (`ARG PYTHON_IMAGE`) |
+| Runs as unprivileged user `nonroot` (UID/GID 65532) | `Dockerfile` + `user:` in compose |
+| Application code and venv are root-owned, so the process cannot rewrite itself | `Dockerfile` |
+| All Linux capabilities dropped (`CapEff` is `0`) | `cap_drop: [ALL]` |
+| Privilege escalation blocked, setuid bits stripped from the image | `no-new-privileges:true` |
+| Immutable root filesystem, only a small `noexec` tmpfs on `/tmp` | `read_only: true` |
+| No runtime dependency installation - the venv is complete at build time | `Dockerfile` |
+| No package managers (`pip`, `apk`) in the final image; the apk database is kept so image scanners still work | `Dockerfile` |
+| PID, memory, CPU limits and log rotation | compose |
+| Secrets (`config/`, `*.key`, `*.pem`) kept out of the build context | `.dockerignore` |
+| CycloneDX SBOM of the installed packages baked into the image, plus OCI labels | `Dockerfile` |
+
+Verify a running container with:
 
 ```bash
-docker compose run --rm kronoterm2mqtt edit-settings
+docker compose run --rm --entrypoint /bin/sh kronoterm2mqtt -c 'id; grep CapEff /proc/self/status'
+# uid=65532(nonroot) gid=65532(nonroot) ... CapEff: 0000000000000000
 ```
+
+### What is inside the image
+
+Every build records its own inventory, so you do not have to trust a rebuild to find out what was shipped. The image carries a CycloneDX SBOM of everything installed in it - Alpine packages from the apk database and the Python distributions in the virtualenv:
+
+```bash
+docker run --rm --entrypoint cat kronoterm2mqtt:local \
+  /usr/share/kronoterm2mqtt/sbom.cdx.json > sbom.json
+```
+
+It is generated by [syft](https://github.com/anchore/syft) (pinned by digest) in a build stage that never reaches the final image, and it lists only *installed* packages: the declared ones in `uv.lock` - dev dependencies that are not in the image - are deliberately left out, because they would show up as vulnerabilities that cannot affect you.
+
+Feed it to a scanner:
+
+```bash
+grype sbom:sbom.json
+trivy sbom sbom.json
+```
+
+Expect the numbers to differ between tools, and between the SBOM and the image itself. Numbers from the current build: `trivy image` reports 0 HIGH/CRITICAL and `grype sbom:` reports 1 - CVE-2026-15308, a denial of service in CPython's `html.parser`, which this app never uses and which is fixed only in Python 3.15. Note also that `trivy sbom` currently matches far less than `trivy image` does on the same build. Treat the SBOM as the record of what is inside, and scan the image directly when you want Trivy's verdict:
+
+```bash
+trivy image kronoterm2mqtt:local
+```
+
+The build also stamps the usual OCI labels, so a running container can be traced back to a commit:
+
+```bash
+docker image inspect kronoterm2mqtt:local --format '{{json .Config.Labels}}'
+```
+
+Pass the values in when building, otherwise they read `unknown`:
+
+```bash
+VCS_REF=$(git rev-parse --short HEAD) \
+BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+APP_VERSION=$(python3 -c "import kronoterm2mqtt; print(kronoterm2mqtt.__version__)") \
+docker compose build
+```
+
+Two things are left to the host, because they are daemon-wide rather than per-container: enabling user namespace remapping (`"userns-remap": "default"` in `/etc/docker/daemon.json`), and turning on the containerd image store if you want BuildKit attestations (`docker buildx build --sbom=true --provenance=mode=max`) - with the default docker driver those are refused, which is why the SBOM below is a file in the image instead.
+
+### Configuration
+
+The `docker-compose.yml` mounts `./config` **read-only** into the container at `/home/nonroot/.config/kronoterm2mqtt`. Place your `kronoterm2mqtt.toml` there before starting.
+
+Edit `config/kronoterm2mqtt.toml` on the host with your own editor - the image deliberately ships without one. To generate a default settings file, mount the directory writable for a single run:
+
+```bash
+docker compose run --rm \
+  -v "$PWD/config:/home/nonroot/.config/kronoterm2mqtt" \
+  kronoterm2mqtt edit-settings
+```
+
+This writes `config/kronoterm2mqtt.toml` and then reports that it found no editor - expected, and harmless.
 
 ### Testing MQTT connection
 
@@ -194,16 +274,101 @@ certfile = "/certs/client.crt"
 keyfile = "/certs/client.key"
 ```
 
-The `docker-compose.yml` mounts `./config/certs` to `/certs` inside the container.
+The `docker-compose.yml` mounts `./config/certs` read-only to `/certs` inside the container. Since the container runs as UID 65532, the certificates must be readable by that user:
+
+```bash
+sudo chown -R 65532:65532 config/certs
+chmod 0644 config/certs/*.crt
+chmod 0600 config/certs/*.key
+```
 
 ### Serial devices (Modbus RTU)
 
-If using a USB RS485 adapter, uncomment the `devices` section in `docker-compose.yml`:
+Not needed for Modbus/TCP. If using a USB RS485 adapter, uncomment the `devices` and `group_add` sections in `docker-compose.yml`. Because the container is unprivileged, it must join the group that owns the device on the host:
+
+```bash
+stat -c '%G %g' /dev/ttyUSB0   # e.g. "dialout 20"
+```
 
 ```yaml
 devices:
   - /dev/ttyUSB0:/dev/ttyUSB0
+group_add:
+  - "20"
 ```
+
+### Health check
+
+The publish loop serves its own status on `http://127.0.0.1:8099/health` **inside** the container - the port is not published, so nothing is reachable from outside. The image's `HEALTHCHECK` polls it every 30 s, which makes the state visible in `docker ps`:
+
+```bash
+$ docker ps
+NAMES            STATUS
+kronoterm2mqtt   Up 2 minutes (healthy)
+```
+
+For the details, ask the container itself:
+
+```bash
+$ docker compose exec kronoterm2mqtt health
+
+HEALTHY
+ MQTT          OK        mqtt.example.com
+ Last publish  1.2s ago  100 entities
+ Modbus        OK        192.168.1.2:502
+ Last read     1.3s ago
+ Failed reads  0
+ Uptime        32s
+```
+
+When something breaks, the command names it and exits non-zero:
+
+```
+UNHEALTHY
+  - last Modbus read was 26.1s ago
+  - last publish was 26.1s ago
+ Failed reads  7          Giving up reading 9 registers at 2053
+```
+
+A container counts as unhealthy when the MQTT client is disconnected, or the last successful Modbus read or publish is older than `stale_after_seconds`. Configure it in the settings:
+
+```toml
+[health]
+enabled = true
+host = "127.0.0.1"
+port = 8099
+stale_after_seconds = 60
+restart_after_seconds = 300  # 0 disables the watchdog
+```
+
+### Automatic restart
+
+Docker does not restart a container just because its `HEALTHCHECK` fails - it only marks it unhealthy. kronoterm2mqtt therefore watches its own state: after `restart_after_seconds` of continuous trouble it says why and ends the process, and the `restart: unless-stopped` policy starts it again.
+
+```
+Unhealthy for 300s: last Modbus read was 310.4s ago - exiting for a restart
+```
+
+The recovery stays inside the container this way. A watchdog container such as [autoheal](https://github.com/willfarrell/docker-autoheal) would do the same job, but only in exchange for the Docker socket - effectively root on the host - which defeats the hardening above.
+
+Set `restart_after_seconds = 0` if you would rather have the container stay up and unhealthy, e.g. while debugging.
+
+### Modbus/TCP gateways that greet the connection
+
+Many serial-to-TCP gateways send a "registration packet" - usually their MAC address - as soon as a client connects. Those bytes are not a Modbus frame, and a strict MBAP parser reads them as the beginning of one, which desynchronizes every following response:
+
+```
+ERROR    Invalid Modbus protocol id: 3729
+ERROR    Repeating....
+```
+
+kronoterm2mqtt discards whatever arrives before the first request and logs what it dropped:
+
+```
+WARNING  Discarded 6 unsolicited bytes sent by the Modbus gateway before the first request: 28 7a 0e 91 5e a9
+```
+
+If your gateway allows it, switching its "Registration Packet" setting off is still the cleaner fix.
 
 ### Viewing logs
 
@@ -398,40 +563,43 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 
 
 
-╭─ options ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ -h, --help     show this help message and exit                                                                       │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ subcommands ────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ (required)                                                                                                           │
-│   • coverage   Run tests and show coverage report.                                                                   │
-│   • expander-loop                                                                                                    │
-│                Runs Custom expander control of a solar pump                                                          │
-│   • expander-motors                                                                                                  │
-│                Rotates all 4 motors by closing (counterclockwise) or opening (clockwise) for duration seconds        │
-│   • expander-relay                                                                                                   │
-│                Switches on or off selected relay                                                                     │
-│   • expander-temperatures                                                                                            │
-│                Print temperatures read from Custom expander                                                          │
-│   • firmware-compile                                                                                                 │
-│                Compiles firmware for Etera GPIO expander with PlatformIO compiler                                    │
-│   • firmware-flash                                                                                                   │
-│                Flashes compiled firmware to Etera GPIO expander                                                      │
-│   • install    Install requirements and 'kronoterm2mqtt' via pip as editable.                                        │
-│   • lint       Check/fix code style by running: ruff check --fix"                                                    │
-│   • mypy       Run Mypy (configured in pyproject.toml)                                                               │
-│   • nox        Run nox                                                                                               │
-│   • pip-audit  Run pip-audit check against current requirements files                                                │
-│   • publish    Build and upload this project to PyPi                                                                 │
-│   • test       Run unittests                                                                                         │
-│   • update     Update dependencies (uv.lock) and git pre-commit hooks                                                │
-│   • update-readme-history                                                                                            │
-│                Update project history base on git commits/tags in README.md Will be exited with 1 if the README.md   │
-│                was updated otherwise with 0. Also, callable via e.g.:                                                │
-│                    python -m cli_base update-readme-history -v                                                       │
-│   • update-test-snapshot-files                                                                                       │
-│                Update all test snapshot files (by remove and recreate all snapshot files)                            │
-│   • version    Print version and exit                                                                                │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ options ──────────────────────────────────────────────────────────────────────────────╮
+│ -h, --help     show this help message and exit                                         │
+╰────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ subcommands ──────────────────────────────────────────────────────────────────────────╮
+│ (required)                                                                             │
+│   • coverage   Run tests and show coverage report.                                     │
+│   • expander-loop                                                                      │
+│                Runs Custom expander control of a solar pump                            │
+│   • expander-motors                                                                    │
+│                Rotates all 4 motors by closing (counterclockwise) or opening           │
+│                (clockwise) for duration seconds                                        │
+│   • expander-relay                                                                     │
+│                Switches on or off selected relay                                       │
+│   • expander-temperatures                                                              │
+│                Print temperatures read from Custom expander                            │
+│   • firmware-compile                                                                   │
+│                Compiles firmware for Etera GPIO expander with PlatformIO compiler      │
+│   • firmware-flash                                                                     │
+│                Flashes compiled firmware to Etera GPIO expander                        │
+│   • install    Install requirements and 'kronoterm2mqtt' via pip as editable.          │
+│   • lint       Check/fix code style by running: ruff check --fix"                      │
+│   • mypy       Run Mypy (configured in pyproject.toml)                                 │
+│   • nox        Run nox                                                                 │
+│   • pip-audit  Run pip-audit check against current requirements files                  │
+│   • publish    Build and upload this project to PyPi                                   │
+│   • test       Run unittests                                                           │
+│   • update     Update dependencies (uv.lock) and git pre-commit hooks                  │
+│   • update-readme-history                                                              │
+│                Update project history base on git commits/tags in README.md Will be    │
+│                exited with 1 if the README.md was updated otherwise with 0. Also,      │
+│                callable via e.g.:                                                      │
+│                    python -m cli_base update-readme-history -v                         │
+│   • update-test-snapshot-files                                                         │
+│                Update all test snapshot files (by remove and recreate all snapshot     │
+│                files)                                                                  │
+│   • version    Print version and exit                                                  │
+╰────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 [comment]: <> (✂✂✂ auto generated dev help end ✂✂✂)
 
@@ -441,6 +609,16 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.17...main)
+  * 2026-08-19 - Raise test coverage from 37% to 83%
+  * 2026-08-19 - Make the loop mode callback work as it reads
+  * 2026-08-17 - Keep the TT3000 register documentation in the repository
+  * 2026-08-17 - Build on Alpine, which has no unfixable advisories to carry
+  * 2026-08-17 - Record what the image contains: SBOM and OCI labels
+  * 2026-08-17 - Drop Python 3.11 and update every dependency to its latest release
+  * 2026-08-17 - Harden the Docker image and document it
+  * 2026-08-17 - Report and act on the health of the publish loop
+  * 2026-08-17 - Keep the publish loop alive through Modbus trouble
+  * 2026-06-24 - More starlette audits
   * 2026-06-09 - Fix tests
   * 2026-05-26 - Add fixed pyetera
   * 2026-05-26 - Update environment and fix expander devel
@@ -649,4 +827,4 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 
 - [Navodila za priklop in uporabo CNS sistema.pdf](https://github.com/user-attachments/files/22581626/Navodila.za.priklop.in.uporabo.CNS.sistema.pdf) Kronoterm Modbus RTU description (in Slovene) obtained from Kronoterm support
 - [Installation and Operating Manual for BMS System.pdf](https://github.com/user-attachments/files/17962066/Installation.and.Operating.Manual.for.BMS.System.pdf) Kronoterm Modbus V3.13-1 RTU description obtained from Kronoterm support
-- [1122-16-17-4021-05_Modbus_BMS_TT3000web.pdf](https://github.com/user-attachments/files/17962067/22-16-17-4021-05_Modbus_BMS_TT3000web.pdf) Modbus naslovi za BMS; Regulacija TT3000 (in Slovene) obtained from Kronoterm support
+- [Modbus naslovi za BMS Regulacija TT3000.pdf](Modbus%20naslovi%20za%20BMS%20Regulacija%20TT3000.pdf) Modbus naslovi za BMS; Regulacija TT3000 (in Slovene) obtained from Kronoterm support. Kept in the repository because the register definitions are derived from it and attachment links do not last; originally attached as [1122-16-17-4021-05_Modbus_BMS_TT3000web.pdf](https://github.com/user-attachments/files/17962067/22-16-17-4021-05_Modbus_BMS_TT3000web.pdf)

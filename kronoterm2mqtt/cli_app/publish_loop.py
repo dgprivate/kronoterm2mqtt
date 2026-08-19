@@ -10,6 +10,7 @@ from ha_services.exceptions import InvalidStateValue
 from rich import print
 
 from kronoterm2mqtt.cli_app import app
+from kronoterm2mqtt.health import HealthServer, HealthState, HealthWatchdog
 from kronoterm2mqtt.mqtt_connection import get_connected_client
 from kronoterm2mqtt.mqtt_handler import KronotermMqttHandler
 from kronoterm2mqtt.user_settings import UserSettings, get_user_settings
@@ -41,10 +42,22 @@ def publish_loop(verbosity: TyroVerbosityArgType):
     setup_logging(verbosity=verbosity)
     user_settings: UserSettings = get_user_settings(verbosity=verbosity)
 
+    health = HealthState(
+        stale_after_seconds=user_settings.health.stale_after_seconds,
+        mqtt_host=user_settings.mqtt.host,
+        modbus_port=user_settings.heat_pump.port,
+    )
+    if user_settings.health.enabled:
+        HealthServer(state=health, host=user_settings.health.host, port=user_settings.health.port).start()
+        # Docker does not restart a container just because its HEALTHCHECK fails, so
+        # the process ends itself after a long outage and lets the restart policy
+        # start it again.
+        HealthWatchdog(state=health, restart_after_seconds=user_settings.health.restart_after_seconds).start()
+
     while True:
         try:
             print('[green]Starting Kronoterm 2 MQTT[/green]')
-            with KronotermMqttHandler(user_settings=user_settings, verbosity=verbosity) as mqtt_handler:
+            with KronotermMqttHandler(user_settings=user_settings, verbosity=verbosity, health=health) as mqtt_handler:
                 asyncio.run(mqtt_handler.publish_loop())
         except KeyboardInterrupt:
             raise
