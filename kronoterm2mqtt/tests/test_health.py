@@ -1,4 +1,5 @@
 import json
+import threading
 import time
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
@@ -111,3 +112,89 @@ class HealthServerTestCase(TestCase):
             status, _payload = self.get(server.port, path='/secrets')
 
         self.assertEqual(status, 404)
+
+
+class HardExitTestCase(TestCase):
+    def test_streams_are_flushed_before_the_process_ends(self):
+        from kronoterm2mqtt.health import hard_exit
+
+        with (
+            patch('kronoterm2mqtt.health.os._exit') as os_exit,
+            patch('kronoterm2mqtt.health.logging.shutdown') as logging_shutdown,
+            patch('sys.stdout') as stdout,
+        ):
+            hard_exit(1)
+
+        stdout.flush.assert_called_once()
+        logging_shutdown.assert_called_once()
+        os_exit.assert_called_once_with(1)
+
+    def test_a_closed_stream_does_not_stop_the_exit(self):
+        from kronoterm2mqtt.health import hard_exit
+
+        broken = MagicMock()
+        broken.flush.side_effect = ValueError('I/O operation on closed file')
+
+        with (
+            patch('kronoterm2mqtt.health.os._exit') as os_exit,
+            patch('kronoterm2mqtt.health.logging.shutdown'),
+            patch('sys.stdout', broken),
+        ):
+            hard_exit(1)
+
+        os_exit.assert_called_once_with(1)
+
+
+class WatchdogThreadTestCase(TestCase):
+    def test_a_disabled_watchdog_starts_no_thread(self):
+        from kronoterm2mqtt.health import HealthWatchdog
+
+        watchdog = HealthWatchdog(state=make_state(), restart_after_seconds=0)
+
+        watchdog.start()
+
+        self.assertIsNone(watchdog.thread)
+
+    def test_the_thread_keeps_checking(self):
+        from kronoterm2mqtt.health import HealthWatchdog
+
+        checked = threading.Event()
+        watchdog = HealthWatchdog(state=make_state(), restart_after_seconds=300, check_interval=0.01)
+        with patch.object(HealthWatchdog, 'check', lambda self: checked.set()):
+            watchdog.start()
+            self.assertTrue(checked.wait(timeout=5))
+
+        self.assertTrue(watchdog.thread.is_alive())
+
+    def test_a_broken_check_does_not_kill_the_thread(self):
+        from kronoterm2mqtt.health import HealthWatchdog
+
+        calls = []
+        watchdog = HealthWatchdog(state=make_state(), restart_after_seconds=300, check_interval=0.01)
+
+        def failing_check(self):
+            calls.append(1)
+            raise RuntimeError('cannot read state')
+
+        with patch.object(HealthWatchdog, 'check', failing_check):
+            watchdog.start()
+            deadline = time.monotonic() + 5
+            while len(calls) < 2 and time.monotonic() < deadline:
+                time.sleep(0.01)
+
+        self.assertGreaterEqual(len(calls), 2)
+
+
+class MqttStateTestCase(TestCase):
+    def test_a_client_that_raises_counts_as_disconnected(self):
+        state = make_state()
+        state.set_mqtt_client(MagicMock(is_connected=MagicMock(side_effect=OSError('gone'))))
+
+        self.assertFalse(state.mqtt_connected())
+
+    def test_is_healthy_is_the_short_answer(self):
+        state = make_state()
+        state.record_modbus_read(complete=True)
+        state.record_publish(published_count=1)
+
+        self.assertTrue(state.is_healthy())

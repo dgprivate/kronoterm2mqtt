@@ -609,6 +609,8 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.17...main)
+  * 2026-08-19 - Raise test coverage from 37% to 83%
+  * 2026-08-19 - Make the loop mode callback work as it reads
   * 2026-08-17 - Keep the TT3000 register documentation in the repository
   * 2026-08-17 - Build on Alpine, which has no unfixable advisories to carry
   * 2026-08-17 - Record what the image contains: SBOM and OCI labels
