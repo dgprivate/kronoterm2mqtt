@@ -143,6 +143,9 @@ ARG APP_VERSION
 ARG BUILD_DATE
 
 COPY --from=sbom --chown=root:root /sbom.cdx.json /usr/share/kronoterm2mqtt/sbom.cdx.json
+# Our analysis of findings that cannot be fixed but do not apply here, in a form
+# scanners read: grype --vex / trivy --vex.
+COPY --chown=root:root security/kronoterm2mqtt.openvex.json /usr/share/kronoterm2mqtt/vex.openvex.json
 
 LABEL org.opencontainers.image.title="kronoterm2mqtt" \
       org.opencontainers.image.description="Sends MQTT events from a KRONOTERM heat pump" \

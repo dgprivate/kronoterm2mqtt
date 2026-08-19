@@ -14,6 +14,10 @@ on:
       - main
     tags:
       - 'v*'
+  schedule:
+    # The base image digest is pinned, but "apk upgrade" in the runtime stage pulls
+    # whatever Alpine has patched since, so a rebuild is what actually ships fixes.
+    - cron: '0 5 * * 1'
   workflow_dispatch:
 
 jobs:
@@ -98,6 +102,9 @@ jobs:
 
       - name: Scan the published image
         uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          # Findings we have analysed and ruled out - see security/README.md
+          TRIVY_VEX: security/kronoterm2mqtt.openvex.json
         with:
           image-ref: ${{ vars.DOCKERHUB_IMAGE }}@${{ steps.build.outputs.digest }}
           severity: HIGH,CRITICAL

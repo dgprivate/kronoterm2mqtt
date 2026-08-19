@@ -1,0 +1,31 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/kosl/kronoterm2mqtt/security/kronoterm2mqtt.openvex.json",
+  "author": "kronoterm2mqtt maintainers",
+  "role": "Project maintainers",
+  "timestamp": "2026-08-19T14:00:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-15308",
+        "description": "CPython html.parser.HTMLParser: CPU denial of service through repeated unterminated markup declarations"
+      },
+      "products": [
+        {
+          "@id": "pkg:generic/python@3.14.7"
+        },
+        {
+          "@id": "pkg:generic/python@3.14.7?arch=aarch64"
+        },
+        {
+          "@id": "pkg:generic/python@3.14.7?arch=x86_64"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "kronoterm2mqtt never parses HTML. It speaks Modbus to the heat pump and MQTT to the broker, and html.parser is not imported anywhere in the application or in its runtime dependencies. The fix landed in CPython 3.15, so the interpreter in this image cannot be upgraded past it yet.",
+      "action_statement": "Revisit when CPython 3.15 is released and the image moves to it; this statement can be dropped then."
+    }
+  ]
+}
