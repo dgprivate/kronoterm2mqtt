@@ -645,6 +645,7 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.17...main)
+  * 2026-08-19 - Pin cosign-installer to a release that exists
   * 2026-08-19 - Say what the image guarantees, and keep the pins moving
   * 2026-08-19 - Publish multi-architecture images from CI
   * 2026-08-19 - Raise test coverage from 37% to 83%

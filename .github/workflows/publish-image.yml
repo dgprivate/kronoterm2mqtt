@@ -87,7 +87,8 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@v4
+        # Pinned to a release: this action publishes no floating v4 tag
+        uses: sigstore/cosign-installer@v4.1.2
 
       - name: Sign the image
         # Keyless: the signature is bound to this workflow's OIDC identity, so there
