@@ -113,7 +113,10 @@ RUN printf '#!/bin/sh\nexec /opt/venv/bin/kronoterm2mqtt_app health "$@"\n' > /u
 # --------------------------------------------------------------------------
 # Generated here rather than as a BuildKit attestation, because attestations
 # need the containerd image store; a file in the image works with any builder.
-FROM ${SYFT_IMAGE} AS sbom
+# On the build platform, not the target one: syft reads the copied filesystem, it
+# does not run anything from it, so there is no reason to emulate another
+# architecture for the scan.
+FROM --platform=$BUILDPLATFORM ${SYFT_IMAGE} AS sbom
 
 COPY --from=runtime-base / /scan
 
@@ -140,6 +143,9 @@ ARG APP_VERSION
 ARG BUILD_DATE
 
 COPY --from=sbom --chown=root:root /sbom.cdx.json /usr/share/kronoterm2mqtt/sbom.cdx.json
+# Our analysis of findings that cannot be fixed but do not apply here, in a form
+# scanners read: grype --vex / trivy --vex.
+COPY --chown=root:root security/kronoterm2mqtt.openvex.json /usr/share/kronoterm2mqtt/vex.openvex.json
 
 LABEL org.opencontainers.image.title="kronoterm2mqtt" \
       org.opencontainers.image.description="Sends MQTT events from a KRONOTERM heat pump" \

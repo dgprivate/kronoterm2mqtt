@@ -1,0 +1,113 @@
+name: publish image
+
+# Publishing is opt-in, so this is a no-op in a fork that has not set it up:
+#
+#   1. create a Docker Hub access token (Account Settings -> Personal access tokens)
+#   2. repository secrets: DOCKERHUB_USERNAME, DOCKERHUB_TOKEN
+#   3. repository variable: DOCKERHUB_IMAGE, e.g. "your-user/kronoterm2mqtt"
+#
+# Without DOCKERHUB_IMAGE the job is skipped and nothing is pushed.
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  schedule:
+    # The base image digest is pinned, but "apk upgrade" in the runtime stage pulls
+    # whatever Alpine has patched since, so a rebuild is what actually ships fixes.
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    if: vars.DOCKERHUB_IMAGE != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Keyless signing through Sigstore
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive  # kronoterm2mqtt/pyetera_uart_bridge is a symlink into it
+          fetch-depth: 0
+
+      - name: Read the package version
+        id: version
+        run: |
+          version=$(sed -n 's/^__version__ = .\(.*\).$/\1/p' kronoterm2mqtt/__init__.py)
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4  # For the linux/arm64 build
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4  # docker-container driver, so attestations work
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Collect tags and labels
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ vars.DOCKERHUB_IMAGE }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VCS_REF=${{ github.sha }}
+            APP_VERSION=${{ steps.version.outputs.version }}
+            BUILD_DATE=${{ steps.version.outputs.date }}
+          # The image carries an SBOM file of its own; these are the registry-side
+          # attestations, which only a container driver can produce.
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4
+
+      - name: Sign the image
+        # Keyless: the signature is bound to this workflow's OIDC identity, so there
+        # is no private key to store or rotate. Verify with:
+        #   cosign verify <image>@<digest> \
+        #     --certificate-identity-regexp '^https://github.com/.+/.github/workflows/publish-image.yml@.+' \
+        #     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
+        env:
+          IMAGE: ${{ vars.DOCKERHUB_IMAGE }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+
+      - name: Scan the published image
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          # Findings we have analysed and ruled out - see security/README.md
+          TRIVY_VEX: security/kronoterm2mqtt.openvex.json
+        with:
+          image-ref: ${{ vars.DOCKERHUB_IMAGE }}@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true  # Report what can actually be acted on
+          exit-code: '1'
+          format: table
