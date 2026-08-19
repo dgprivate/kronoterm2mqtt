@@ -113,7 +113,10 @@ RUN printf '#!/bin/sh\nexec /opt/venv/bin/kronoterm2mqtt_app health "$@"\n' > /u
 # --------------------------------------------------------------------------
 # Generated here rather than as a BuildKit attestation, because attestations
 # need the containerd image store; a file in the image works with any builder.
-FROM ${SYFT_IMAGE} AS sbom
+# On the build platform, not the target one: syft reads the copied filesystem, it
+# does not run anything from it, so there is no reason to emulate another
+# architecture for the scan.
+FROM --platform=$BUILDPLATFORM ${SYFT_IMAGE} AS sbom
 
 COPY --from=runtime-base / /scan
 

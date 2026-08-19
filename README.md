@@ -169,6 +169,38 @@ Create your configuration at `config/kronoterm2mqtt.toml` (see [Setup](#setup) f
 docker compose up -d
 ```
 
+### Published images
+
+If the repository this came from publishes images (see below), there is nothing to build:
+
+```yaml
+services:
+  kronoterm2mqtt:
+    image: your-user/kronoterm2mqtt:latest   # instead of "build:"
+```
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Images are built for `linux/amd64` and `linux/arm64`, so the same tag works on a server and on a Raspberry Pi 4/5. Every push carries an SBOM and a provenance attestation, and is signed with a keyless Sigstore signature bound to the workflow that built it:
+
+```bash
+cosign verify your-user/kronoterm2mqtt:latest \
+  --certificate-identity-regexp '^https://github.com/.+/.github/workflows/publish-image.yml@.+' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+docker buildx imagetools inspect your-user/kronoterm2mqtt:latest --format '{{ json .SBOM }}'
+```
+
+**Publishing from your own fork** is opt-in and needs three settings; without them `publish-image.yml` skips itself and nothing is pushed:
+
+1. a Docker Hub access token (Docker Hub → Account Settings → Personal access tokens)
+2. repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`
+3. a repository variable `DOCKERHUB_IMAGE`, e.g. `your-user/kronoterm2mqtt`
+
+Pushes to `main` then publish `latest`, `main` and `sha-<commit>`; a `v1.2.3` tag also publishes `1.2.3` and `1.2`. The workflow finishes with a Trivy scan of what it just pushed and fails on fixable HIGH or CRITICAL findings, so a bad image does not stay `latest` unnoticed.
+
 ### Security hardening
 
 The image and compose file follow least-privilege practice (CIS Docker Benchmark, NIST SP 800-190):
@@ -609,6 +641,7 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.17...main)
+  * 2026-08-19 - Publish multi-architecture images from CI
   * 2026-08-19 - Raise test coverage from 37% to 83%
   * 2026-08-19 - Make the loop mode callback work as it reads
   * 2026-08-17 - Keep the TT3000 register documentation in the repository

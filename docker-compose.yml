@@ -8,6 +8,8 @@ services:
         VCS_REF: ${VCS_REF:-unknown}
         APP_VERSION: ${APP_VERSION:-unknown}
         BUILD_DATE: ${BUILD_DATE:-unknown}
+    # To run a published image instead of building it, replace the build section
+    # above with: image: your-user/kronoterm2mqtt:latest
     image: kronoterm2mqtt:local
     container_name: kronoterm2mqtt
     restart: unless-stopped
