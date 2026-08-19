@@ -101,6 +101,25 @@ jobs:
           IMAGE: ${{ vars.DOCKERHUB_IMAGE }}
           DIGEST: ${{ steps.build.outputs.digest }}
 
+      - name: Render the Docker Hub overview
+        # The page names the image and the release it documents, so it is written
+        # with placeholders and filled in here.
+        run: |
+          sed -e "s|IMAGE_NAME|${IMAGE}|g" -e "s|IMAGE_VERSION|${VERSION}|g" \
+            .github/dockerhub-overview.md > "${RUNNER_TEMP}/overview.md"
+        env:
+          IMAGE: ${{ vars.DOCKERHUB_IMAGE }}
+          VERSION: ${{ steps.version.outputs.version }}
+
+      - name: Update the Docker Hub description
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ vars.DOCKERHUB_IMAGE }}
+          short-description: 'KRONOTERM heat pump to MQTT bridge for Home Assistant, Modbus RTU or TCP'
+          readme-filepath: ${{ runner.temp }}/overview.md
+
       - name: Scan the published image
         uses: aquasecurity/trivy-action@v0.36.0
         env:
