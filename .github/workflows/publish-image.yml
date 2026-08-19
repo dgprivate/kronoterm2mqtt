@@ -112,6 +112,10 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
 
       - name: Update the Docker Hub description
+        # The image is pushed and signed by now, so a page that did not update is
+        # not a failed release. It also needs a token with delete scope, which the
+        # one used for pushing does not have to have.
+        continue-on-error: true
         uses: peter-evans/dockerhub-description@v5
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
