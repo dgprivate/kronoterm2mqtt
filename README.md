@@ -644,6 +644,9 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
+* [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.18...main)
+  * 2026-08-19 - Give the Docker Hub page something to read
+  * 2026-08-19 - Release 0.1.18
 * [v0.1.18](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.17...v0.1.18)
   * 2026-08-19 - Release 0.1.18
   * 2026-08-19 - Pin cosign-installer to a release that exists
@@ -708,12 +711,12 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
   * 2025-09-26 - Fix sensor value->state
   * 2025-09-25 - Update readme
   * 2025-09-25 - Taskgroup fails when ha_services == 2.10
-* [v0.1.15](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.14...v0.1.15)
-  * 2025-09-26 - Fix enum validation and release new package
-  * 2025-09-26 - Fix Invalid: device_class='enum' !
 
 <details><summary>Expand older history entries ...</summary>
 
+* [v0.1.15](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.14...v0.1.15)
+  * 2025-09-26 - Fix enum validation and release new package
+  * 2025-09-26 - Fix Invalid: device_class='enum' !
 * [v0.1.14](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.13...v0.1.14)
   * 2025-09-26 - Release 0.1.14
   * 2025-09-26 - Cleanup of the MQTT global device ids and components for running within a loop
