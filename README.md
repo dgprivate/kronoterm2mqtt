@@ -645,6 +645,7 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.18...main)
+  * 2026-08-19 - Do not fail a release over the description page
   * 2026-08-19 - Give the Docker Hub page something to read
   * 2026-08-19 - Release 0.1.18
 * [v0.1.18](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.17...v0.1.18)
