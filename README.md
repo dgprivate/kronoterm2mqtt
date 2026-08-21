@@ -3,6 +3,7 @@
 [![tests](https://github.com/dgprivate/kronoterm2mqtt/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/dgprivate/kronoterm2mqtt/actions/workflows/tests.yml)
 [![publish image](https://github.com/dgprivate/kronoterm2mqtt/actions/workflows/publish-image.yml/badge.svg?branch=main)](https://github.com/dgprivate/kronoterm2mqtt/actions/workflows/publish-image.yml)
 [![codecov](https://codecov.io/github/dgprivate/kronoterm2mqtt/branch/main/graph/badge.svg)](https://app.codecov.io/github/dgprivate/kronoterm2mqtt)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/dgprivate/kronoterm2mqtt/badge)](https://scorecard.dev/viewer/?uri=github.com/dgprivate/kronoterm2mqtt)
 [![Docker Hub](https://img.shields.io/docker/v/hausbit/kronoterm2mqtt?sort=semver&label=Docker%20Hub)](https://hub.docker.com/r/hausbit/kronoterm2mqtt)
 [![image size](https://img.shields.io/docker/image-size/hausbit/kronoterm2mqtt/latest)](https://hub.docker.com/r/hausbit/kronoterm2mqtt/tags)
 [![pulls](https://img.shields.io/docker/pulls/hausbit/kronoterm2mqtt)](https://hub.docker.com/r/hausbit/kronoterm2mqtt)
@@ -670,6 +671,8 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.18...main)
+  * 2026-08-21 - Measure the supply chain instead of asserting it
+  * 2026-08-21 - Fix the rule that disables pin updates
   * 2026-08-21 - Keep Renovate out of the dependency policy
   * 2026-08-21 - Stop Renovate from watching the base image twice
   * 2026-08-21 - Let Renovate keep the pins moving, instead of Dependabot
