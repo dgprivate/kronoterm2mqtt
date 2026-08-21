@@ -1,11 +1,17 @@
 # kronoterm2mqtt
 
-[![tests](https://github.com/kosl/kronoterm2mqtt/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/kosl/kronoterm2mqtt/actions/workflows/tests.yml)
-[![codecov](https://codecov.io/github/kosl/kronoterm2mqtt/branch/main/graph/badge.svg)](https://app.codecov.io/github/kosl/kronoterm2mqtt)
-[![kronoterm2mqtt @ PyPi](https://img.shields.io/pypi/v/kronoterm2mqtt?label=kronoterm2mqtt%20%40%20PyPi)](https://pypi.org/project/kronoterm2mqtt/)
-[![downloads](https://static.pepy.tech/badge/kronoterm2mqtt)](https://pepy.tech/projects/kronoterm2mqtt)
-[![Python Versions](https://img.shields.io/pypi/pyversions/kronoterm2mqtt)](https://github.com/kosl/kronoterm2mqtt/blob/main/pyproject.toml)
-[![License GPL-3.0-or-later](https://img.shields.io/pypi/l/kronoterm2mqtt)](https://github.com/kosl/kronoterm2mqtt/blob/main/LICENSE)
+[![tests](https://github.com/dgprivate/kronoterm2mqtt/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/dgprivate/kronoterm2mqtt/actions/workflows/tests.yml)
+[![publish image](https://github.com/dgprivate/kronoterm2mqtt/actions/workflows/publish-image.yml/badge.svg?branch=main)](https://github.com/dgprivate/kronoterm2mqtt/actions/workflows/publish-image.yml)
+[![Docker Hub](https://img.shields.io/docker/v/hausbit/kronoterm2mqtt?sort=semver&label=Docker%20Hub)](https://hub.docker.com/r/hausbit/kronoterm2mqtt)
+[![image size](https://img.shields.io/docker/image-size/hausbit/kronoterm2mqtt/latest)](https://hub.docker.com/r/hausbit/kronoterm2mqtt/tags)
+[![pulls](https://img.shields.io/docker/pulls/hausbit/kronoterm2mqtt)](https://hub.docker.com/r/hausbit/kronoterm2mqtt)
+[![Python Versions](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)](https://github.com/dgprivate/kronoterm2mqtt/blob/main/pyproject.toml)
+[![License GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](https://github.com/dgprivate/kronoterm2mqtt/blob/main/LICENSE)
+
+A fork of [kosl/kronoterm2mqtt](https://github.com/kosl/kronoterm2mqtt), published as a container image at
+[`hausbit/kronoterm2mqtt`](https://hub.docker.com/r/hausbit/kronoterm2mqtt). The changes it carries are offered back
+upstream in [#9](https://github.com/kosl/kronoterm2mqtt/pull/9) and
+[#11](https://github.com/kosl/kronoterm2mqtt/pull/11).
 
 Kronoterm Heat Pump -> Modbus -> RS485-USB-Adapter -> kronoterm2mqtt -> MQTT -> Home Assistant
 
@@ -645,7 +651,9 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.18...main)
+  * 2026-08-21 - Point the badges at this fork
   * 2026-08-19 - Do not fail a release over the description page
+  * 2026-08-19 - Update README history
   * 2026-08-19 - Give the Docker Hub page something to read
 * [v0.1.18](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.17...v0.1.18)
   * 2026-08-19 - Release 0.1.18
