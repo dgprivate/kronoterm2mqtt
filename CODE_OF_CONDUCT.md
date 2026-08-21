@@ -50,12 +50,11 @@ an appointed representative at an online or offline event.
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the
-maintainer of this repository, [@dgprivate](https://github.com/dgprivate), through a private channel
-of your choosing. Please do not report conduct concerns in a public issue.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported privately to
+**conduct@black.si**. Please do not report conduct concerns in a public issue.
 
-If the concern involves the maintainer, or you would rather not go through this repository at all,
-GitHub accepts reports directly at
+If the concern involves the maintainer, or you would rather not write to this project at all, GitHub
+accepts reports directly at
 [github.com/contact/report-abuse](https://github.com/contact/report-abuse).
 
 All complaints will be reviewed and investigated promptly and fairly. This is a small, spare-time

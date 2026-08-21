@@ -8,6 +8,10 @@ rather than in a public issue. Include what you did, what happened, and the vers
 were running - `docker image inspect <image> --format '{{index .Config.Labels "org.opencontainers.image.revision"}}'`
 names the commit an image was built from.
 
+If you have no GitHub account, or private reporting is unavailable to you, write to
+**conduct@black.si** instead and say that the report is a security one. That mailbox is ordinary
+email, so send only enough to start the conversation and keep the detail for the advisory.
+
 This is a spare-time project, so there is no response time to promise. Expect an acknowledgement rather
 than a fix on a schedule.
 
