@@ -10,6 +10,8 @@ on:
   schedule:
     - cron: '0 8 * * *'
 
+permissions: read-all  # Jobs that need more ask for it themselves
+
 jobs:
   test:
     strategy:
@@ -27,7 +29,7 @@ jobs:
         git checkout $GITHUB_SHA || (git fetch && git checkout $GITHUB_SHA)
 
     - name: 'Set up Python ${{ matrix.python-version }}'
-      uses: actions/setup-python@main
+      uses: actions/setup-python@751276eafca55f10f252026015f43c488f2322ba  # main
       # https://github.com/marketplace/actions/setup-python
       with:
         python-version: '${{ matrix.python-version }}'
@@ -36,7 +38,7 @@ jobs:
 
     - name: Install uv and set the Python version
       # https://docs.astral.sh/uv/guides/integration/github/#multiple-python-versions
-      uses: astral-sh/setup-uv@main
+      uses: astral-sh/setup-uv@19b4d1e990bec64818914c40230bde93a0de300b  # main
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -70,7 +72,7 @@ jobs:
         ./dev-cli.py coverage
 
     - name: 'Upload coverage report'
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238  # v4
       # https://github.com/marketplace/actions/codecov
       with:
         # https://docs.codecov.com/docs/codecov-tokens#example-github-actions--official-codecov-action

@@ -1,0 +1,39 @@
+name: codeql
+
+# Static analysis of the Python source. Runs on pushes and pull requests so a
+# finding shows up while the change is still being reviewed, and weekly, because
+# CodeQL's own queries keep improving after the code has stopped changing.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: '25 5 * * 1'
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write  # Report findings to the Security tab
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@42947a340483f03ba47bb1a039b2c519aab3df85  # v3
+        with:
+          languages: python
+          queries: security-extended
+
+      - name: Analyse
+        uses: github/codeql-action/analyze@42947a340483f03ba47bb1a039b2c519aab3df85  # v3

@@ -45,11 +45,12 @@
       "groupName": "development tooling"
     },
     {
-      "description": "GitHub Actions: one pull request for all of them",
+      "description": "GitHub Actions are pinned by commit SHA; Renovate keeps the SHA and the version comment in step",
       "matchManagers": [
         "github-actions"
       ],
-      "groupName": "github actions"
+      "groupName": "github actions",
+      "pinDigests": true
     },
     {
       "description": "The base image and the tools around it are pinned by digest on purpose",

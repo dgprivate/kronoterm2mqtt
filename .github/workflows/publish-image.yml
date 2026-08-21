@@ -20,6 +20,8 @@ on:
     - cron: '0 5 * * 1'
   workflow_dispatch:
 
+permissions: read-all  # Jobs that need more ask for it themselves
+
 jobs:
   publish:
     if: vars.DOCKERHUB_IMAGE != ''
@@ -30,7 +32,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           submodules: recursive  # kronoterm2mqtt/pyetera_uart_bridge is a symlink into it
           fetch-depth: 0
@@ -43,20 +45,20 @@ jobs:
           echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4  # For the linux/arm64 build
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8  # v4  # For the linux/arm64 build
 
       - name: Set up Buildx
-        uses: docker/setup-buildx-action@v4  # docker-container driver, so attestations work
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e  # v4  # docker-container driver, so attestations work
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f  # v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Collect tags and labels
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6
         with:
           images: ${{ vars.DOCKERHUB_IMAGE }}
           tags: |
@@ -68,7 +70,7 @@ jobs:
 
       - name: Build and push
         id: build
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -88,7 +90,7 @@ jobs:
 
       - name: Install cosign
         # Pinned to a release: this action publishes no floating v4 tag
-        uses: sigstore/cosign-installer@v4.1.2
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
 
       - name: Sign the image
         # Keyless: the signature is bound to this workflow's OIDC identity, so there
@@ -116,7 +118,7 @@ jobs:
         # not a failed release. It also needs a token with delete scope, which the
         # one used for pushing does not have to have.
         continue-on-error: true
-        uses: peter-evans/dockerhub-description@v5
+        uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa  # v5
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -125,7 +127,7 @@ jobs:
           readme-filepath: ${{ runner.temp }}/overview.md
 
       - name: Scan the published image
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
         env:
           # Findings we have analysed and ruled out - see security/README.md
           TRIVY_VEX: security/kronoterm2mqtt.openvex.json
