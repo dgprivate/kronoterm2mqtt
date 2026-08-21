@@ -13,7 +13,8 @@
 A fork of [kosl/kronoterm2mqtt](https://github.com/kosl/kronoterm2mqtt), published as a container image at
 [`hausbit/kronoterm2mqtt`](https://hub.docker.com/r/hausbit/kronoterm2mqtt). The changes it carries are offered back
 upstream in [#9](https://github.com/kosl/kronoterm2mqtt/pull/9) and
-[#11](https://github.com/kosl/kronoterm2mqtt/pull/11).
+[#11](https://github.com/kosl/kronoterm2mqtt/pull/11). Patches are welcome:
+[CONTRIBUTING.md](CONTRIBUTING.md) says what a change has to satisfy.
 
 ## Run it without building it
 
@@ -671,6 +672,7 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.18...main)
+  * 2026-08-21 - Close the gaps Scorecard found
   * 2026-08-21 - Measure the supply chain instead of asserting it
   * 2026-08-21 - Fix the rule that disables pin updates
   * 2026-08-21 - Keep Renovate out of the dependency policy
