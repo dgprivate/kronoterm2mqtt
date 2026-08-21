@@ -693,7 +693,8 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
-* [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.18...main)
+* [v0.1.19](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.18...v0.1.19)
+  * 2026-08-21 - Give conduct and security reports an address to write to
   * 2026-08-21 - Adopt the Contributor Covenant
   * 2026-08-21 - Raise coverage from 83% to 96%
   * 2026-08-21 - Close the remaining gaps the badge questionnaire found
