@@ -1,0 +1,58 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommitsDisabled"
+  ],
+  "timezone": "Europe/Ljubljana",
+  "schedule": ["* 4-7 * * 1"],
+  "prConcurrentLimit": 5,
+  "labels": ["dependencies"],
+  "commitMessagePrefix": "Update",
+  "commitMessageAction": "",
+  "commitMessageTopic": "{{depName}}",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["* 4-7 * * 1"]
+  },
+  "packageRules": [
+    {
+      "description": "Development tooling moves together and rarely needs reading",
+      "matchManagers": ["pep621"],
+      "matchDepTypes": ["dev", "dev-dependencies"],
+      "groupName": "development tooling"
+    },
+    {
+      "description": "GitHub Actions: one pull request for all of them",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    },
+    {
+      "description": "The base image and the tools around it are pinned by digest on purpose",
+      "matchManagers": ["custom.regex"],
+      "pinDigests": true
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "Base image and syft, both pinned by digest in ARG defaults",
+      "customType": "regex",
+      "fileMatch": ["^Dockerfile$"],
+      "matchStrings": [
+        "ARG PYTHON_IMAGE=(?<depName>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]+)",
+        "ARG SYFT_IMAGE=(?<depName>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "currentValueTemplate": "latest"
+    },
+    {
+      "description": "uv, installed by version in the builder stage",
+      "customType": "regex",
+      "fileMatch": ["^Dockerfile$"],
+      "matchStrings": ["ARG UV_VERSION=(?<currentValue>[0-9.]+)"],
+      "depNameTemplate": "uv",
+      "datasourceTemplate": "pypi"
+    }
+  ]
+}

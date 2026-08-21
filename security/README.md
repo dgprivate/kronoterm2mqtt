@@ -53,6 +53,11 @@ docker run --rm --net host --pid host --userns host --cap-add audit_control \
 
 ## Vulnerabilities
 
+Renovate keeps the pinned base image digest, the pinned tools and the locked
+dependencies moving; without it, a pin that never changes is a pin that collects
+advisories. It needs the Renovate app installed on the repository, and it opens a
+dependency dashboard issue listing everything it is tracking.
+
 The published image is rebuilt weekly and the build fails on **fixable** HIGH or
 CRITICAL findings, so what ships is what could be fixed at the time. Two things
 follow from that, and both are deliberate:
