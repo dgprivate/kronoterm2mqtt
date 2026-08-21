@@ -151,3 +151,57 @@ class CommandTestCase(TestCase):
         )
 
         self.assertIn('Outside temperature', output)
+
+
+class ErrorPathTestCase(TestCase):
+    """Every printer has to survive a device that answers with an error."""
+
+    def setUp(self):
+        self.client = FakeModbusClient({}, error=True)
+
+    def printers(self):
+        return (
+            (print_values_module.print_parameter_values, DEFINITIONS['sensor']),
+            (print_values_module.print_binary_sensor_values, DEFINITIONS['binary_sensor']),
+            (print_values_module.print_enum_sensor_values, DEFINITIONS['enum_sensor']),
+            (print_values_module.print_switch_values, DEFINITIONS['switch']),
+            (print_values_module.print_select_values, DEFINITIONS['select']),
+        )
+
+    def test_an_error_response_is_printed_and_the_run_continues(self):
+        for printer, parameters in self.printers():
+            with self.subTest(printer=printer.__name__):
+                output = capture(printer, self.client, parameters, verbosity=0)
+                self.assertIn('Error:', output)
+
+    def test_verbose_output_names_the_register_for_every_kind(self):
+        client = FakeModbusClient({2000: 0, 2011: 1, 2012: 0, 2044: 1, 2100: 10})
+        for printer, parameters in self.printers():
+            with self.subTest(printer=printer.__name__):
+                output = capture(printer, client, parameters, verbosity=1)
+                self.assertIn('Register dec:', output)
+
+    def test_a_value_outside_the_options_is_reported(self):
+        client = FakeModbusClient({2000: 42, 2012: 42})  # No such key in either option list
+
+        enum_output = capture(
+            print_values_module.print_enum_sensor_values, client, DEFINITIONS['enum_sensor'], verbosity=0
+        )
+        select_output = capture(
+            print_values_module.print_select_values, client, DEFINITIONS['select'], verbosity=0
+        )
+
+        self.assertIn('42', enum_output)
+        self.assertIn('42', select_output)
+
+
+class ProbeTestCase(TestCase):
+    def test_probe_one_port_uses_the_port_it_was_given(self):
+        user_settings = UserSettings()
+        user_settings.heat_pump.port = '/dev/ttyUSB7'
+        client = FakeModbusClient({2100: 200})
+
+        with patch.object(print_values_module, 'get_modbus_client', return_value=client) as get_client:
+            capture(print_values_module.probe_one_port, user_settings.heat_pump, DEFINITIONS, verbosity=2)
+
+        self.assertEqual(get_client.call_args.args[0].port, '/dev/ttyUSB7')

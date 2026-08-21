@@ -1,10 +1,11 @@
+import asyncio
 from decimal import Decimal
 from unittest import IsolatedAsyncioTestCase, TestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from ha_services.mqtt4homeassistant.data_classes import NoState
 from ha_services.mqtt4homeassistant.device import BaseMqttDevice
-from pymodbus.exceptions import ModbusIOException
+from pymodbus.exceptions import ConnectionException, ModbusIOException
 from pymodbus.pdu import ExceptionResponse
 from pymodbus.pdu.register_message import ReadHoldingRegistersResponse
 
@@ -368,3 +369,109 @@ class WriteFailureTestCase(TestCase):
         self.assertFalse(handler.write_register(address=2011, value=1))
 
         self.assertEqual(client.write_register.call_count, 1)
+
+
+class CallbackFailureTestCase(IsolatedAsyncioTestCase):
+    """What the callbacks do when they cannot find or cannot write the register."""
+
+    def tearDown(self):
+        BaseMqttDevice.device_uids = set()
+        BaseMqttDevice.components = {}
+
+    async def make_handler(self):
+        handler = make_handler()
+        with patch.object(type(handler.heat_pump), 'get_definitions', return_value=DEFINITIONS):
+            await handler.init_device()
+        return handler
+
+    async def test_an_unknown_switch_is_reported(self):
+        handler = await self.make_handler()
+        stranger = MagicMock(name='not-registered')
+
+        with self.assertLogs('kronoterm2mqtt.mqtt_handler', level='ERROR') as logs:
+            handler.switch_callback(client=MagicMock(), component=stranger, old_state='OFF', new_state='ON')
+
+        self.assertIn('Could not find address', '\n'.join(logs.output))
+        self.assertEqual(handler.modbus_client.writes, [])
+
+    async def test_an_unknown_select_is_reported(self):
+        handler = await self.make_handler()
+        stranger = MagicMock(name='not-registered')
+
+        with self.assertLogs('kronoterm2mqtt.mqtt_handler', level='ERROR') as logs:
+            handler.select_callback(client=MagicMock(), component=stranger, old_state='auto', new_state='ECO')
+
+        self.assertIn('Could not find address', '\n'.join(logs.output))
+
+    async def test_a_failed_write_leaves_the_state_alone(self):
+        handler = await self.make_handler()
+        switch = handler.switches[SYSTEM_POWER]
+        before = switch.state
+        handler.modbus_client.write_register = MagicMock(return_value=ExceptionResponse(6, 2))
+
+        with self.assertLogs('kronoterm2mqtt.mqtt_handler', level='ERROR') as logs:
+            handler.switch_callback(client=MagicMock(), component=switch, old_state='OFF', new_state='ON')
+
+        self.assertIn('Failed to write register', '\n'.join(logs.output))
+        self.assertEqual(switch.state, before)
+
+    async def test_a_failed_select_write_leaves_the_state_alone(self):
+        handler = await self.make_handler()
+        select = handler.selects[OPERATING_PROGRAM][0]
+        handler.modbus_client.write_register = MagicMock(return_value=ExceptionResponse(6, 2))
+
+        with self.assertLogs('kronoterm2mqtt.mqtt_handler', level='ERROR') as logs:
+            handler.select_callback(client=MagicMock(), component=select, old_state='auto', new_state='ECO')
+
+        self.assertIn('Failed to write register', '\n'.join(logs.output))
+
+
+class ReconnectTestCase(TestCase):
+    """reconnect_modbus() has to survive whatever the client does."""
+
+    def make_handler_with(self, client):
+        handler = object.__new__(KronotermMqttHandler)
+        handler.verbosity = 1
+        handler.health = None
+        handler.modbus_client = client
+        return handler
+
+    def test_a_successful_reconnect_is_announced(self):
+        client = MagicMock()
+        client.connect.return_value = True
+
+        self.assertTrue(self.make_handler_with(client).reconnect_modbus())
+        client.close.assert_called_once()
+
+    def test_a_client_that_does_not_come_back_is_reported(self):
+        client = MagicMock()
+        client.connect.return_value = False
+
+        with self.assertLogs('kronoterm2mqtt.mqtt_handler', level='WARNING') as logs:
+            self.assertFalse(self.make_handler_with(client).reconnect_modbus())
+
+        self.assertIn('client is not connected', '\n'.join(logs.output))
+
+    def test_an_error_while_closing_does_not_stop_the_reconnect(self):
+        client = MagicMock()
+        client.close.side_effect = OSError('already gone')
+        client.connect.return_value = True
+
+        self.assertTrue(self.make_handler_with(client).reconnect_modbus())
+
+    def test_incomplete_reads_are_announced_once_per_cycle(self):
+        handler = object.__new__(KronotermMqttHandler)
+        handler.verbosity = 0
+        handler.health = None
+        handler.registers = {}
+        handler.address_ranges = [(2100, 2100)]
+        handler.modbus_client = MagicMock()
+        handler.modbus_client.read_holding_registers.side_effect = ConnectionException('gone')
+
+        with (
+            patch('kronoterm2mqtt.mqtt_handler.MODBUS_RETRY_DELAY', 0),
+            self.assertLogs('kronoterm2mqtt.mqtt_handler', level='WARNING'),
+        ):
+            complete = asyncio.run(handler.read_heat_pump_register_blocks())
+
+        self.assertFalse(complete)

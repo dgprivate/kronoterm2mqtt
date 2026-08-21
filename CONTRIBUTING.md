@@ -29,7 +29,7 @@ Python **3.12 or newer** (`requires-python` in `pyproject.toml`). The test matri
 | Requirement | How to check |
 |---|---|
 | Tests pass | `./dev-cli.py test` |
-| Coverage stays at or above 80% | `./dev-cli.py coverage` (`fail_under` in `pyproject.toml`) |
+| Coverage stays at or above 95% | `./dev-cli.py coverage` (`fail_under` in `pyproject.toml`) |
 | Code style is clean | `./dev-cli.py lint` runs `ruff check --fix` |
 | No known vulnerable dependencies | `./dev-cli.py pip-audit` |
 

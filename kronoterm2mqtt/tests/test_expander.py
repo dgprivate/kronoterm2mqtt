@@ -339,3 +339,53 @@ class LoopSwitchCallbackTestCase(ExpanderTestCase):
 
         self.assertEqual(select.state, self.handler.WorkingMode.OFF.value)
         self.assertIsNone(self.handler.expedited_heating_timer[0])
+
+
+class ExpanderErrorPathTestCase(ExpanderTestCase):
+    """What happens when the board answers with an error, or not at all."""
+
+    async def test_a_device_error_during_a_cycle_is_raised_after_logging(self):
+        self.etera.get_temperatures = MagicMock(side_effect=EteraUartBridge.DeviceException('no answer'))
+
+        with (
+            self.assertLogs('kronoterm2mqtt.expander', level='ERROR'),
+            self.assertRaises(EteraUartBridge.DeviceException),
+        ):
+            await self.control()
+
+    async def test_an_invalid_state_is_logged_and_the_cycle_ends_quietly(self):
+        # A temperature outside the sensor range makes ha_services refuse the state
+        self.etera.temperatures = [999.0] * 10
+
+        with self.assertLogs('kronoterm2mqtt.expander', level='WARNING') as logs:
+            await self.control()
+
+        self.assertIn('invalid state', '\n'.join(logs.output).lower())
+
+    async def test_relays_are_published_even_after_a_refused_state(self):
+        self.etera.temperatures = [999.0] * 10
+
+        with self.assertLogs('kronoterm2mqtt.expander', level='WARNING'):
+            await self.control()
+
+        for relay in self.handler.relays:
+            if relay is not None:
+                self.assertIsNotNone(relay.state)
+
+    async def test_a_loop_that_is_off_closes_its_valve_when_circulation_stops(self):
+        self.handler.loop_states[0].set_state(self.handler.WorkingMode.OFF.value)
+        await self.control(loop_circulation_status=True)  # Pumps on for the other loops
+        self.etera.moves.clear()
+
+        await self.control(loop_circulation_status=False)
+
+        self.assertFalse(self.etera.relays.get(0, False))
+
+    async def test_verbose_control_reports_what_it_decided(self):
+        self.handler.verbosity = 2
+        self.expire_valve_hold_time()
+        self.handler.last_working_function = 0
+
+        await self.control()  # Must not raise with the extra output enabled
+
+        self.assertIsNotNone(self.handler.mixing_valve_sensors[0].state)

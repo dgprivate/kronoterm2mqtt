@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Iterator
 from decimal import Decimal
 import itertools
 import logging
@@ -285,7 +286,7 @@ class KronotermMqttHandler:
         else:
             logger.error(f'Failed to write register for {component.name}')
 
-    def ranges(self, i: list) -> list:
+    def ranges(self, i: list) -> Iterator[tuple[int, int]]:
         """Prepare intervals of modbus addresses for fetching register groups
         See https://stackoverflow.com/questions/4628333
         """
