@@ -670,6 +670,7 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.18...main)
+  * 2026-08-21 - Stop Renovate from watching the base image twice
   * 2026-08-21 - Let Renovate keep the pins moving, instead of Dependabot
   * 2026-08-21 - Lead with the published image, and put codecov back
   * 2026-08-21 - Point the badges at this fork

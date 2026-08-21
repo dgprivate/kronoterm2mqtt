@@ -24,6 +24,17 @@
   },
   "packageRules": [
     {
+      "description": "pyproject.toml states policy, uv.lock states the exact versions. Do not turn the first into the second.",
+      "matchManagers": [
+        "pep621"
+      ],
+      "rangeStrategy": "replace",
+      "matchUpdateTypes": [
+        "pin"
+      ],
+      "enabled": false
+    },
+    {
       "description": "Development tooling moves together and rarely needs reading",
       "matchManagers": [
         "pep621"
