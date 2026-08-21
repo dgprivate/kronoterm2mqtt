@@ -24,6 +24,14 @@ In short:
 * it carries an SBOM of itself, and published images carry SBOM and provenance attestations plus a keyless signature
 * the base image and tools are pinned by digest, Renovate moves those pins, and the image is rebuilt weekly
 * the build fails on fixable HIGH or CRITICAL findings
+* each release carries its SBOM as an asset, with a Sigstore bundle beside it:
+
+```bash
+cosign verify-blob --bundle kronoterm2mqtt-v0.1.18.sbom.cdx.json.sigstore.json \
+  --certificate-identity-regexp '^https://github.com/.+/.github/workflows/publish-image.yml@.+' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  kronoterm2mqtt-v0.1.18.sbom.cdx.json
+```
 
 ## Supported versions
 

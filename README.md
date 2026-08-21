@@ -694,6 +694,7 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.18...main)
+  * 2026-08-21 - List every input and output in one place
   * 2026-08-21 - Say where to send a bug report
   * 2026-08-21 - Write down what a change has to satisfy
   * 2026-08-21 - Close the gaps Scorecard found

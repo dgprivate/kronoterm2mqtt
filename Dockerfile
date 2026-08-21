@@ -19,7 +19,9 @@
 ARG PYTHON_IMAGE=python@sha256:05b2b8b732ecd268fee8727a369f936f022d1321b59befd13c30ede22769dcdc
 # syft 1.51.0, used to record what ends up in the image (see the "sbom" stage)
 ARG SYFT_IMAGE=anchore/syft@sha256:678bfa565b60f747aac0f8e964fe5588a24445b8d0a480e91f6efd70020dfbb0
-ARG UV_VERSION=0.12.5
+# uv 0.12.5, copied from its own image instead of installed with pip: a digest is
+# a stronger statement than a version, and it keeps pip out of the builder.
+ARG UV_IMAGE=ghcr.io/astral-sh/uv@sha256:e85be844203885286c60ffad8a858d48afb6c5a5c237ca0e67f12e74b8f174b1
 ARG APP_UID=65532
 ARG APP_GID=65532
 # Traceability: pass these in to record where the image came from, e.g.
@@ -32,9 +34,9 @@ ARG BUILD_DATE=unknown
 # --------------------------------------------------------------------------
 # Builder: creates /opt/venv with all runtime dependencies
 # --------------------------------------------------------------------------
-FROM ${PYTHON_IMAGE} AS builder
+FROM ${UV_IMAGE} AS uv
 
-ARG UV_VERSION
+FROM ${PYTHON_IMAGE} AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -49,7 +51,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # final image either way.
 RUN apk add --no-cache gcc musl-dev linux-headers
 
-RUN pip install --no-cache-dir "uv==${UV_VERSION}"
+COPY --from=uv /uv /usr/local/bin/uv
 
 WORKDIR /app
 

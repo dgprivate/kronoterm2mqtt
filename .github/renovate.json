@@ -75,16 +75,16 @@
       "currentValueTemplate": "latest"
     },
     {
-      "description": "uv, installed by version in the builder stage",
+      "description": "uv, pinned by digest in an ARG the dockerfile manager does not resolve",
       "customType": "regex",
       "fileMatch": [
         "^Dockerfile$"
       ],
       "matchStrings": [
-        "ARG UV_VERSION=(?<currentValue>[0-9.]+)"
+        "ARG UV_IMAGE=(?<depName>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]+)"
       ],
-      "depNameTemplate": "uv",
-      "datasourceTemplate": "pypi"
+      "datasourceTemplate": "docker",
+      "currentValueTemplate": "latest"
     }
   ]
 }

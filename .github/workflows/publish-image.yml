@@ -27,7 +27,7 @@ jobs:
     if: vars.DOCKERHUB_IMAGE != ''
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write  # Attach the signed SBOM to the release
       id-token: write  # Keyless signing through Sigstore
 
     steps:
@@ -102,6 +102,26 @@ jobs:
         env:
           IMAGE: ${{ vars.DOCKERHUB_IMAGE }}
           DIGEST: ${{ steps.build.outputs.digest }}
+
+      - name: Attach a signed SBOM to the release
+        # Only for a tag: the release gets the inventory of what was published, and a
+        # Sigstore bundle so it can be verified without trusting this repository.
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          IMAGE: ${{ vars.DOCKERHUB_IMAGE }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          docker run --rm --entrypoint cat "${IMAGE}@${DIGEST}" \
+            /usr/share/kronoterm2mqtt/sbom.cdx.json > "kronoterm2mqtt-${TAG}.sbom.cdx.json"
+          cosign sign-blob --yes \
+            --bundle "kronoterm2mqtt-${TAG}.sbom.cdx.json.sigstore.json" \
+            "kronoterm2mqtt-${TAG}.sbom.cdx.json"
+          gh release upload "${TAG}" \
+            "kronoterm2mqtt-${TAG}.sbom.cdx.json" \
+            "kronoterm2mqtt-${TAG}.sbom.cdx.json.sigstore.json" \
+            --clobber
 
       - name: Render the Docker Hub overview
         # The page names the image and the release it documents, so it is written
