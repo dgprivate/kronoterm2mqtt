@@ -4,6 +4,7 @@
 [![publish image](https://github.com/dgprivate/kronoterm2mqtt/actions/workflows/publish-image.yml/badge.svg?branch=main)](https://github.com/dgprivate/kronoterm2mqtt/actions/workflows/publish-image.yml)
 [![codecov](https://codecov.io/github/dgprivate/kronoterm2mqtt/branch/main/graph/badge.svg)](https://app.codecov.io/github/dgprivate/kronoterm2mqtt)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/dgprivate/kronoterm2mqtt/badge)](https://scorecard.dev/viewer/?uri=github.com/dgprivate/kronoterm2mqtt)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14191/badge)](https://www.bestpractices.dev/projects/14191)
 [![Docker Hub](https://img.shields.io/docker/v/hausbit/kronoterm2mqtt?sort=semver&label=Docker%20Hub)](https://hub.docker.com/r/hausbit/kronoterm2mqtt)
 [![image size](https://img.shields.io/docker/image-size/hausbit/kronoterm2mqtt/latest)](https://hub.docker.com/r/hausbit/kronoterm2mqtt/tags)
 [![pulls](https://img.shields.io/docker/pulls/hausbit/kronoterm2mqtt)](https://hub.docker.com/r/hausbit/kronoterm2mqtt)
@@ -693,7 +694,10 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
+* [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.19...main)
+  * 2026-08-21 - Show the badge the questionnaire earned
 * [v0.1.19](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.18...v0.1.19)
+  * 2026-08-21 - Release 0.1.19
   * 2026-08-21 - Give conduct and security reports an address to write to
   * 2026-08-21 - Adopt the Contributor Covenant
   * 2026-08-21 - Raise coverage from 83% to 96%
@@ -764,6 +768,9 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
   * 2025-10-05 - Ignore pip 15.2 audit GHSA-4xh5-x5gv-qwph problem
   * 2025-09-28 - Link to docs under issue #2
   * 2025-09-28 - Glued image of HASS screenshots
+
+<details><summary>Expand older history entries ...</summary>
+
 * [v0.1.16](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.15...v0.1.16)
   * 2025-09-27 - Release 0.1.16
   * 2025-09-27 - Add a note on USB problem at exception
@@ -776,9 +783,6 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
   * 2025-09-26 - Fix sensor value->state
   * 2025-09-25 - Update readme
   * 2025-09-25 - Taskgroup fails when ha_services == 2.10
-
-<details><summary>Expand older history entries ...</summary>
-
 * [v0.1.15](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.14...v0.1.15)
   * 2025-09-26 - Fix enum validation and release new package
   * 2025-09-26 - Fix Invalid: device_class='enum' !
