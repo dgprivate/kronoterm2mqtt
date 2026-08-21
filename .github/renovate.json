@@ -28,7 +28,6 @@
       "matchManagers": [
         "pep621"
       ],
-      "rangeStrategy": "replace",
       "matchUpdateTypes": [
         "pin"
       ],
