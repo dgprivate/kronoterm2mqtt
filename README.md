@@ -2,6 +2,7 @@
 
 [![tests](https://github.com/dgprivate/kronoterm2mqtt/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/dgprivate/kronoterm2mqtt/actions/workflows/tests.yml)
 [![publish image](https://github.com/dgprivate/kronoterm2mqtt/actions/workflows/publish-image.yml/badge.svg?branch=main)](https://github.com/dgprivate/kronoterm2mqtt/actions/workflows/publish-image.yml)
+[![codecov](https://codecov.io/github/dgprivate/kronoterm2mqtt/branch/main/graph/badge.svg)](https://app.codecov.io/github/dgprivate/kronoterm2mqtt)
 [![Docker Hub](https://img.shields.io/docker/v/hausbit/kronoterm2mqtt?sort=semver&label=Docker%20Hub)](https://hub.docker.com/r/hausbit/kronoterm2mqtt)
 [![image size](https://img.shields.io/docker/image-size/hausbit/kronoterm2mqtt/latest)](https://hub.docker.com/r/hausbit/kronoterm2mqtt/tags)
 [![pulls](https://img.shields.io/docker/pulls/hausbit/kronoterm2mqtt)](https://hub.docker.com/r/hausbit/kronoterm2mqtt)
@@ -12,6 +13,24 @@ A fork of [kosl/kronoterm2mqtt](https://github.com/kosl/kronoterm2mqtt), publish
 [`hausbit/kronoterm2mqtt`](https://hub.docker.com/r/hausbit/kronoterm2mqtt). The changes it carries are offered back
 upstream in [#9](https://github.com/kosl/kronoterm2mqtt/pull/9) and
 [#11](https://github.com/kosl/kronoterm2mqtt/pull/11).
+
+## Run it without building it
+
+```yaml
+services:
+  kronoterm2mqtt:
+    image: hausbit/kronoterm2mqtt:0.1.18
+    volumes:
+      - ./config:/home/nonroot/.config/kronoterm2mqtt:ro
+```
+
+```bash
+docker compose up -d && docker compose exec kronoterm2mqtt health
+```
+
+The image is at [**hub.docker.com/r/hausbit/kronoterm2mqtt**](https://hub.docker.com/r/hausbit/kronoterm2mqtt),
+built for `linux/amd64` and `linux/arm64`, so a server and a Raspberry Pi take the same tag. The full compose file
+with the hardening flags, the settings file and the TLS setup are under [Docker](#docker).
 
 Kronoterm Heat Pump -> Modbus -> RS485-USB-Adapter -> kronoterm2mqtt -> MQTT -> Home Assistant
 
@@ -651,6 +670,7 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.18...main)
+  * 2026-08-21 - Lead with the published image, and put codecov back
   * 2026-08-21 - Point the badges at this fork
   * 2026-08-19 - Do not fail a release over the description page
   * 2026-08-19 - Update README history
