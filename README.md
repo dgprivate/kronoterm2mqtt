@@ -64,6 +64,26 @@ the protocol and interface. By default, this module functionality is
 disabled so that only Kronoterm Heat Pump MQTT can still be used
 without having this hardware module.
 
+## Getting it, reporting a problem, contributing
+
+* **Get it** as a container image from
+  [`hausbit/kronoterm2mqtt`](https://hub.docker.com/r/hausbit/kronoterm2mqtt) - see the snippet above -
+  or build it from source, which is what the next section describes. Releases and their notes are on the
+  [releases page](https://github.com/dgprivate/kronoterm2mqtt/releases).
+* **Report a bug or ask for a change** by opening an
+  [issue](https://github.com/dgprivate/kronoterm2mqtt/issues). Say which version or image digest you ran -
+  `docker compose exec kronoterm2mqtt health` prints the state of a running instance, and the container logs
+  usually name the register or the connection that misbehaved. Questions count as issues here; there is no
+  separate forum.
+* **Report a security problem privately** instead, through
+  [private vulnerability reporting](https://github.com/dgprivate/kronoterm2mqtt/security/advisories/new).
+  [`SECURITY.md`](SECURITY.md) has the detail.
+* **Send a patch**: [`CONTRIBUTING.md`](CONTRIBUTING.md) lists the four checks a change has to pass, the
+  style rules and where they are configured, and how to add a heat pump register without touching code.
+
+Changes that are not specific to the published image are offered back to
+[kosl/kronoterm2mqtt](https://github.com/kosl/kronoterm2mqtt), the project this one is forked from.
+
 ## Bootstrap kronoterm2mqtt
 
 Clone the sources and just call the CLI to create a Python Virtualenv, e.g.:
@@ -672,6 +692,7 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.18...main)
+  * 2026-08-21 - Write down what a change has to satisfy
   * 2026-08-21 - Close the gaps Scorecard found
   * 2026-08-21 - Measure the supply chain instead of asserting it
   * 2026-08-21 - Fix the rule that disables pin updates
