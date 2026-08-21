@@ -78,6 +78,8 @@ without having this hardware module.
 * **Report a security problem privately** instead, through
   [private vulnerability reporting](https://github.com/dgprivate/kronoterm2mqtt/security/advisories/new).
   [`SECURITY.md`](SECURITY.md) has the detail.
+* **Look up an option, a topic or a field**: [`REFERENCE.md`](REFERENCE.md) lists every input and output -
+  commands, settings, Modbus registers, MQTT topics and the health endpoint.
 * **Send a patch**: [`CONTRIBUTING.md`](CONTRIBUTING.md) lists the four checks a change has to pass, the
   style rules and where they are configured, and how to add a heat pump register without touching code.
 
@@ -692,6 +694,7 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.18...main)
+  * 2026-08-21 - Say where to send a bug report
   * 2026-08-21 - Write down what a change has to satisfy
   * 2026-08-21 - Close the gaps Scorecard found
   * 2026-08-21 - Measure the supply chain instead of asserting it
