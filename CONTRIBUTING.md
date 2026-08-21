@@ -78,6 +78,11 @@ Explain why the change is needed, not what the diff shows. If a fix corrects ear
 behaviour, say what that behaviour was - the commit message is where the next person
 looks when the same problem comes back.
 
+## Conduct
+
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) applies to issues, pull requests and anything else
+around this repository. It is the Contributor Covenant, and reports go to the maintainer privately.
+
 ## Security
 
 Do not report a vulnerability in a pull request or a public issue. [`SECURITY.md`](SECURITY.md)
