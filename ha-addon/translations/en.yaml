@@ -1,0 +1,46 @@
+---
+configuration:
+  log_level:
+    name: Log level
+    description: >-
+      How much the add-on writes to its log. "info" reports Modbus retries and
+      reconnects; "debug" adds every register read and every MQTT message.
+  mqtt:
+    name: MQTT broker
+    description: >-
+      Leave "use_supervisor" on to use the broker Home Assistant already knows about
+      (the Mosquitto add-on) - host, port, user name and password are then filled in
+      for you and the fields below are ignored. Turn it off to reach a broker
+      elsewhere. "main_uid" is the prefix of every entity this add-on creates; changing
+      it later makes Home Assistant see a second, separate device.
+  mqtt_tls:
+    name: MQTT over TLS
+    description: >-
+      For a broker that requires TLS. Point "ca_certs" at the certificate authority
+      file to verify the broker, and set "certfile" and "keyfile" as well if the broker
+      wants a client certificate. "insecure" skips the host name check and should stay
+      off outside of testing.
+  heat_pump:
+    name: Heat pump
+    description: >-
+      Where the heat pump is: a serial device such as /dev/ttyUSB0, or "host:port" for
+      an RS485-to-network gateway. "pooling_interval" is how many seconds pass between
+      readings, "timeout" how long a single Modbus read may take, and "device_name" and
+      "model" are what the device is called in Home Assistant.
+  health:
+    name: Health endpoint
+    description: >-
+      The status endpoint the Supervisor watches. Keep the host at 0.0.0.0 so the
+      watchdog can reach it; the port is not published outside Home Assistant. Data
+      older than "stale_after_seconds" counts as a problem, and after
+      "restart_after_seconds" of trouble the add-on stops itself so the Supervisor
+      starts it again. Set that to 0 to never restart on its own.
+  custom_expander:
+    name: Custom ETERA expander
+    description: >-
+      Only for the do-it-yourself expander module with DS18S20 thermometers, which
+      drives additional heating loops and solar pumps. Leave "module_enabled" off if
+      you do not have one. The lists are read positionally: loop 1 is the first entry of
+      every loop list, and an empty relay name means that relay is unused.
+network:
+  8099/tcp: Health endpoint (MQTT, Modbus and publishing status)
