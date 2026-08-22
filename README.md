@@ -718,6 +718,7 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [v0.1.20](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.19...v0.1.20)
+  * 2026-08-22 - Add a Home Assistant add-on with the whole configuration in the UI
   * 2026-08-22 - Add coverage-guided fuzzing for the untrusted input paths
   * 2026-08-21 - Show the badge the questionnaire earned
 * [v0.1.19](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.18...v0.1.19)
