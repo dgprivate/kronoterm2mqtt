@@ -7,6 +7,7 @@ import urllib.request
 from cli_base.cli_tools.verbosity import setup_logging
 from cli_base.tyro_commands import TyroVerbosityArgType
 from rich import print
+from rich.markup import escape
 from rich.table import Table
 
 from kronoterm2mqtt.cli_app import app
@@ -51,7 +52,7 @@ def health(verbosity: TyroVerbosityArgType):
         print(f'[red]http://{settings.host}:{settings.port}/health did not answer with a health report')
         sys.exit(1)
 
-    published = field(state, 'sensors_published', default='?')
+    published = text(field(state, 'sensors_published'), '?')
 
     table = Table(show_header=False, box=None)
     table.add_row('MQTT', status(field(state, 'mqtt', 'connected')), text(field(state, 'mqtt', 'host')))
@@ -97,9 +98,15 @@ def field(state: dict, *path: str, default=None):
 
 
 def text(value, default: str = '') -> str:
+    """A value from the report, safe to print.
+
+    Escaped, because rich reads square brackets as markup and the report carries text
+    this command did not write: a Modbus error such as "Invalid response [0x10]" would
+    otherwise end the status with a markup error instead of showing the error.
+    """
     if value is None:
         return default
-    return str(value)
+    return escape(str(value))
 
 
 def uptime(value) -> str:
@@ -117,4 +124,4 @@ def status(value) -> str:
 def seconds_ago(value) -> str:
     if value is None:
         return '[yellow]never'
-    return f'{value}s ago'
+    return f'{escape(str(value))}s ago'

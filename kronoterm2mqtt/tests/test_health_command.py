@@ -109,6 +109,22 @@ class HealthCommandTestCase(TestCase):
         self.assertEqual(code, 1)
         self.assertIn('did not answer with a health report', output)
 
+    def test_an_error_message_with_brackets_in_it_is_shown_not_parsed(self):
+        """Found by fuzz/fuzz_health_report.py: rich read the message as markup and raised."""
+        state = {
+            **UNHEALTHY,
+            'problems': ['Modbus read failed [/z]'],
+            'sensors_published': '[/z]',
+            'modbus': {**UNHEALTHY['modbus'], 'last_error': 'Invalid response [0x10]'},
+        }
+
+        code, output = run_command(return_value=state)
+
+        self.assertEqual(code, 1)
+        self.assertIn('Invalid response [0x10]', output)
+        self.assertIn('Modbus read failed [/z]', output)
+        self.assertIn('[/z] entities', output)
+
 
 class FetchHealthTestCase(TestCase):
     def test_a_503_answer_is_a_result_not_an_error(self):
