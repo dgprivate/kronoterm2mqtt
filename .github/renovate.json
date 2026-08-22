@@ -59,6 +59,13 @@
         "dockerfile"
       ],
       "pinDigests": true
+    },
+    {
+      "description": "The add-on builds on our own released image; the release bumps that tag, and a test fails if it disagrees with the version",
+      "matchPackageNames": [
+        "hausbit/kronoterm2mqtt"
+      ],
+      "enabled": false
     }
   ],
   "customManagers": [
