@@ -26,6 +26,11 @@ services:
   - mqtt:want
 # Serial devices, for a heat pump connected over RS485 instead of a TCP gateway
 uart: true
+# Read-only, for the MQTT TLS certificates: /ssl is where Home Assistant keeps its own,
+# /share is where you can put anything else.
+map:
+  - share:ro
+  - ssl:ro
 # Restart the add-on when the health endpoint stops answering. The same watchdog the
 # plain container has, run by the Supervisor instead of by Docker.
 watchdog: http://[HOST]:[PORT:8099]/health

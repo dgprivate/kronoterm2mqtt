@@ -41,8 +41,10 @@ MQTT message, and is noisy enough that you will want to turn it back down.
 ### MQTT over TLS
 
 Only for a broker that requires TLS. `ca_certs` verifies the broker, `certfile` plus
-`keyfile` authenticate this add-on to it. All three are paths inside the container, so
-put the files in `/share` (for example `/share/mqtt/ca.crt`) and point at them there.
+`keyfile` authenticate this add-on to it. All three are paths inside the container. Two
+directories are mounted read-only for this: `/ssl`, where Home Assistant keeps its own
+certificates, and `/share`, for anything else — put the files in one of them and point
+at them there, for example `/share/mqtt/ca.crt`.
 `insecure` skips the host name check — for testing, not for a broker on a network you
 do not control.
 
