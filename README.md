@@ -718,6 +718,9 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [v0.1.20](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.19...v0.1.20)
+  * 2026-08-22 - Show error messages instead of parsing them as markup
+  * 2026-08-22 - Mount the certificate directories the TLS options point at
+  * 2026-08-22 - Record the Renovate change in the README history
   * 2026-08-22 - Keep Renovate off the image the add-on builds on
   * 2026-08-22 - Add a Home Assistant add-on with the whole configuration in the UI
   * 2026-08-22 - Add coverage-guided fuzzing for the untrusted input paths
