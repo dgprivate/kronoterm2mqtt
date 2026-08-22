@@ -47,29 +47,68 @@ def health(verbosity: TyroVerbosityArgType):
         print('[yellow]Is the publish loop running?')
         sys.exit(1)
 
-    published = state['sensors_published']
+    if not isinstance(state, dict):
+        print(f'[red]http://{settings.host}:{settings.port}/health did not answer with a health report')
+        sys.exit(1)
+
+    published = field(state, 'sensors_published', default='?')
 
     table = Table(show_header=False, box=None)
-    table.add_row('MQTT', settings_value(state['mqtt']['connected']), state['mqtt']['host'])
-    table.add_row('Last publish', seconds_ago(state['mqtt']['last_publish_seconds_ago']), f'{published} entities')
-    table.add_row('Modbus', settings_value(state['modbus']['last_read_complete']), state['modbus']['port'])
-    table.add_row('Last read', seconds_ago(state['modbus']['last_read_seconds_ago']), '')
-    table.add_row('Failed reads', str(state['modbus']['failed_reads']), state['modbus']['last_error'] or '')
-    table.add_row('Uptime', f'{state["uptime_seconds"]:.0f}s', '')
+    table.add_row('MQTT', status(field(state, 'mqtt', 'connected')), text(field(state, 'mqtt', 'host')))
+    table.add_row(
+        'Last publish', seconds_ago(field(state, 'mqtt', 'last_publish_seconds_ago')), f'{published} entities'
+    )
+    table.add_row('Modbus', status(field(state, 'modbus', 'last_read_complete')), text(field(state, 'modbus', 'port')))
+    table.add_row('Last read', seconds_ago(field(state, 'modbus', 'last_read_seconds_ago')), '')
+    table.add_row(
+        'Failed reads', text(field(state, 'modbus', 'failed_reads'), '?'), text(field(state, 'modbus', 'last_error'))
+    )
+    table.add_row('Uptime', uptime(field(state, 'uptime_seconds')), '')
+
+    healthy = bool(state.get('healthy'))
 
     print()
-    if state['healthy']:
+    if healthy:
         print('[green]HEALTHY[/green]')
     else:
         print('[red]UNHEALTHY[/red]')
-        for problem in state['problems']:
-            print(f'  [red]-[/red] {problem}')
+        problems = field(state, 'problems', default=[])
+        if isinstance(problems, list):
+            for problem in problems:
+                print(f'  [red]-[/red] {text(problem)}')
     print(table)
 
-    sys.exit(0 if state['healthy'] else 1)
+    sys.exit(0 if healthy else 1)
 
 
-def settings_value(value) -> str:
+def field(state: dict, *path: str, default=None):
+    """Read a value out of the health report, tolerating anything that is not there.
+
+    The report arrives over a socket, so it can come from an older container, from a
+    half-written answer or from something else listening on that port. A status command
+    is the wrong place to raise a traceback: whatever it cannot find reads as unknown.
+    """
+    value = state
+    for key in path:
+        if not isinstance(value, dict) or key not in value:
+            return default
+        value = value[key]
+    return value
+
+
+def text(value, default: str = '') -> str:
+    if value is None:
+        return default
+    return str(value)
+
+
+def uptime(value) -> str:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return '[yellow]unknown'
+    return f'{value:.0f}s'
+
+
+def status(value) -> str:
     if value is None:
         return '[yellow]unknown'
     return '[green]OK' if value else '[red]FAILED'
