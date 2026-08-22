@@ -1,0 +1,8 @@
+---
+# Makes this repository installable in Home Assistant as an add-on repository:
+# Settings -> Add-ons -> Add-on store -> ⋮ -> Repositories -> add the URL of this
+# repository. The Supervisor then finds every top-level directory that holds a
+# config.yaml - here that is ha-addon/.
+name: kronoterm2mqtt
+url: https://github.com/dgprivate/kronoterm2mqtt
+maintainer: hausbit (https://github.com/dgprivate)

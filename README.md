@@ -22,7 +22,7 @@ upstream in [#9](https://github.com/kosl/kronoterm2mqtt/pull/9) and
 ```yaml
 services:
   kronoterm2mqtt:
-    image: hausbit/kronoterm2mqtt:0.1.18
+    image: hausbit/kronoterm2mqtt:0.1.20
     volumes:
       - ./config:/home/nonroot/.config/kronoterm2mqtt:ro
 ```
@@ -64,6 +64,29 @@ project](https://github.com/Lenart12/etera-uart-bridge) for help on
 the protocol and interface. By default, this module functionality is
 disabled so that only Kronoterm Heat Pump MQTT can still be used
 without having this hardware module.
+
+## Home Assistant add-on
+
+If Home Assistant runs as an OS or Supervised installation, this project can be installed as an add-on and
+configured entirely from its interface - no settings file, no SSH.
+
+**Settings -> Add-ons -> Add-on store -> ⋮ -> Repositories**, add
+`https://github.com/dgprivate/kronoterm2mqtt`, then install **kronoterm2mqtt** from the store.
+
+Every setting the project has is an option on the add-on's Configuration tab, and a test fails if the two ever
+drift apart. Two of them exist only inside Home Assistant:
+
+* `mqtt.use_supervisor` (on by default) takes the broker address and credentials from the Mosquitto add-on, so
+  there is nothing to type in for the usual setup.
+* `log_level` maps to the app's verbosity flags.
+
+The Supervisor watches the same health endpoint the container health check uses, and restarts the add-on when it
+stops answering. The add-on runs the published image with an entrypoint that renders the options into settings;
+it starts as root to write `/data`, then drops to the same unprivileged user (65532) as the plain container
+before starting the app.
+
+The add-on lives in [`ha-addon/`](ha-addon/), and its own documentation - every option, and what to do when
+something does not work - is in [`ha-addon/DOCS.md`](ha-addon/DOCS.md).
 
 ## Getting it, reporting a problem, contributing
 
@@ -694,7 +717,8 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
-* [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.19...main)
+* [v0.1.20](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.19...v0.1.20)
+  * 2026-08-22 - Add coverage-guided fuzzing for the untrusted input paths
   * 2026-08-21 - Show the badge the questionnaire earned
 * [v0.1.19](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.18...v0.1.19)
   * 2026-08-21 - Release 0.1.19

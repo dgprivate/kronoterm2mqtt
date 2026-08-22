@@ -1,0 +1,10 @@
+---
+# The add-on is the published container image plus the entrypoint that turns the
+# add-on options into settings, so installing it on a Raspberry Pi is a pull and two
+# small layers rather than a build from source.
+#
+# One multi-architecture tag for both architectures on purpose: the manifest resolves
+# to the right image on the device, so there is nothing to keep in sync per platform.
+build_from:
+  aarch64: hausbit/kronoterm2mqtt:0.1.20
+  amd64: hausbit/kronoterm2mqtt:0.1.20
