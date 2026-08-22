@@ -85,6 +85,30 @@ class HealthCommandTestCase(TestCase):
         self.assertEqual(code, 2)
         self.assertIn('disabled', output)
 
+    def test_a_report_without_the_expected_keys_is_still_rendered(self):
+        """Found by fuzz/fuzz_health_report.py: an empty report raised KeyError."""
+        code, output = run_command(return_value={})
+
+        self.assertEqual(code, 1)
+        self.assertIn('UNHEALTHY', output)
+        self.assertIn('unknown', output)
+        self.assertIn('never', output)
+
+    def test_a_report_with_the_wrong_types_is_still_rendered(self):
+        state = {'healthy': 'yes', 'mqtt': 'disconnected', 'uptime_seconds': 'ages', 'problems': 'not a list'}
+
+        code, output = run_command(return_value=state)
+
+        self.assertEqual(code, 0)
+        self.assertIn('HEALTHY', output)
+        self.assertIn('unknown', output)
+
+    def test_an_answer_that_is_not_a_report_is_reported_as_such(self):
+        code, output = run_command(return_value=['not', 'a', 'report'])
+
+        self.assertEqual(code, 1)
+        self.assertIn('did not answer with a health report', output)
+
 
 class FetchHealthTestCase(TestCase):
     def test_a_503_answer_is_a_result_not_an_error(self):
