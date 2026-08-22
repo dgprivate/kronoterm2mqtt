@@ -69,6 +69,11 @@ devices: ["/dev/ttyUSB0:/dev/ttyUSB0"]
 group_add: ["20"]   # stat -c '%g' /dev/ttyUSB0
 ```
 
+## Running Home Assistant OS?
+
+Then you do not need this image directly: the same release is packaged as an add-on, with every setting on its Configuration tab and the Supervisor watching the health endpoint. Add
+`https://github.com/dgprivate/kronoterm2mqtt` under **Settings -> Add-ons -> Add-on store -> ⋮ -> Repositories** and install **kronoterm2mqtt** from the store.
+
 ## Is it working?
 
 The publish loop reports on itself, and the container's `HEALTHCHECK` uses the same endpoint, so `docker ps` shows `healthy` or `unhealthy`:
