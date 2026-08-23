@@ -121,6 +121,20 @@ is published again so Home Assistant stops showing the rejected one. Negative se
 which the offsets are, are written in two's complement, the way the heat pump reports
 them.
 
+## Output: Home Assistant dashboard
+
+`ha-dashboard.yaml` is a ready dashboard for every entity the definitions publish -
+settings first, then readings, grouped by what they are about. Regenerate it after
+changing the definitions:
+
+```bash
+./dev-cli.py dashboard
+```
+
+Entity names in it assume `[heat_pump] device_name = "Heat Pump"`; with a different
+device name the prefix changes with it. A test fails if the checked-in file stops
+matching what the generator writes.
+
 ## Output: health endpoint
 
 `GET http://<health.host>:<health.port>/health` - **200** when healthy, **503** when not,

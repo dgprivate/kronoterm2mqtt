@@ -658,7 +658,7 @@ WantedBy=multi-user.target
 - [x] `binary_sensor` to show some two-state states
 - [x] `binary_sensor` to decode binary statuses in `enum` like manner combined. For example error messages or "additional activations".
 - [x] `number` component allowing change of some numeric parameters (set temperatures, etc.). Implemented here in `kronoterm2mqtt/number.py`, because [ha-services](https://github.com/jedie/ha-services) has no number component; written so it can move upstream unchanged.
-- [ ] Display the heat pump state using ThermIQ as an example.
+- [x] Display the heat pump state, the way ThermIQ ships a dashboard rather than a list of entity names: [`ha-dashboard.yaml`](ha-dashboard.yaml), generated from the register definitions with `./dev-cli.py dashboard` and pasted into Home Assistant under **Settings -> Dashboards -> Add dashboard -> Raw configuration editor**. Settings first, then readings, grouped by what they are about.
 - [ ] Expander should full cycle mixing motors when DHW is working.
 - [x] Sensors for computed reference temperatures: every mixing-valve loop publishes the temperature its heating curve is asking for, each cycle. Saving that back into the settings file is deliberately not done - the container mounts the settings read-only, and a value recomputed from the weather every cycle is not a setting.
 - [x] Enable/disable heat pump switch (`System power`, MA_2012).
@@ -668,7 +668,7 @@ WantedBy=multi-user.target
 
 [comment]: <> (✂✂✂ auto generated dev help start ✂✂✂)
 ```
-usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,expander-temperatures,firmware-compile,firmware-flash,install,lint,mypy,nox,pip-audit,publish,test,update,update-readme-history,update-test-snapshot-files,version}
+usage: ./dev-cli.py [-h] {coverage,dashboard,expander-loop,expander-motors,expander-relay,expander-temperatures,firmware-compile,firmware-flash,install,lint,mypy,nox,pip-audit,publish,test,update,update-readme-history,update-test-snapshot-files,version}
 
 
 
@@ -678,6 +678,7 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 ╭─ subcommands ──────────────────────────────────────────────────────────────────────────╮
 │ (required)                                                                             │
 │   • coverage   Run tests and show coverage report.                                     │
+│   • dashboard  Generate ha-dashboard.yaml from the register definitions                │
 │   • expander-loop                                                                      │
 │                Runs Custom expander control of a solar pump                            │
 │   • expander-motors                                                                    │
@@ -718,6 +719,9 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.20...main)
+  * 2026-08-23 - Mark the reference temperature item done in the README
+  * 2026-08-23 - Publish the temperature each loop is aiming at
+  * 2026-08-23 - Make the heat pump's settings settable from Home Assistant
   * 2026-08-23 - Update the pins Renovate was holding for Monday
   * 2026-08-23 - Draw the add-on a pixel-art icon and logo
 * [v0.1.20](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.19...v0.1.20)
