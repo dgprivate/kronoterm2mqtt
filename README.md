@@ -718,6 +718,8 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [v0.1.20](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.19...v0.1.20)
+  * 2026-08-22 - Point Home Assistant OS users at the add-on from the image page
+  * 2026-08-22 - Release 0.1.20
   * 2026-08-22 - Show error messages instead of parsing them as markup
   * 2026-08-22 - Mount the certificate directories the TLS options point at
   * 2026-08-22 - Record the Renovate change in the README history

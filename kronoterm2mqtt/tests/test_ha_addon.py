@@ -1,9 +1,11 @@
 """The Home Assistant add-on: its manifest, and the options it turns into settings."""
 
 import dataclasses
+import importlib.util
 import json
 import os
 from pathlib import Path
+import struct
 import tempfile
 from unittest import TestCase
 from unittest.mock import patch
@@ -82,6 +84,38 @@ class AddonManifestTestCase(TestCase):
         self.assertEqual(self.config['options']['health']['host'], '0.0.0.0')
         self.assertTrue(self.config['options']['health']['enabled'])
         self.assertIn(str(self.config['options']['health']['port']), self.config['watchdog'])
+
+
+class ArtworkTestCase(TestCase):
+    """The pictures the store shows, and the script that draws them."""
+
+    def setUp(self):
+        specification = importlib.util.spec_from_file_location('addon_artwork', ADDON_PATH / 'artwork.py')
+        self.artwork = importlib.util.module_from_spec(specification)
+        specification.loader.exec_module(self.artwork)
+
+    @staticmethod
+    def size(path: Path) -> tuple[int, int]:
+        """Width and height out of the PNG header."""
+        header = path.read_bytes()[16:24]
+        return struct.unpack('>II', header)
+
+    def test_the_icon_is_square(self):
+        width, height = self.size(ADDON_PATH / 'icon.png')
+
+        self.assertEqual(width, height)
+        self.assertGreaterEqual(width, 128)  # What the add-on store asks for
+
+    def test_the_logo_fits_where_the_store_puts_it(self):
+        width, height = self.size(ADDON_PATH / 'logo.png')
+
+        self.assertLessEqual(width, 250)
+        self.assertLessEqual(height, 100)
+
+    def test_the_committed_pictures_are_the_ones_the_script_draws(self):
+        """Otherwise the script stops being how the artwork is changed."""
+        self.assertEqual(self.artwork.icon().to_png(), (ADDON_PATH / 'icon.png').read_bytes())
+        self.assertEqual(self.artwork.logo().to_png(), (ADDON_PATH / 'logo.png').read_bytes())
 
 
 class OptionsToSettingsTestCase(TestCase):
