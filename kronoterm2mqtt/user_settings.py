@@ -107,6 +107,10 @@ class CustomEteraExpander:
     loop_temperature: list = dataclasses.field(default_factory=lambda: [25.0, 25.0, 25.0, 25.0])  # At 0°C
     heating_curve_coefficient: float = 0.25  # : loop/outside temp °C
 
+    # Run each mixing valve through its full range once while the heat pump is heating
+    # sanitary water, then put it back where it was. A valve that never moves can seize,
+    # and the loops are not circulating then, so the sweep costs nothing.
+    exercise_valves_during_dhw: bool = False
     solar_pump_operation: int = 1  # : 0 = disabled, 1 = enabled
     solar_pump_difference_on: float = 8.0  # : °C On(solar collector - solar tank bottom)
     solar_pump_difference_off: float = 3.0  # : °C Off(solar collector - solart tank bottom)

@@ -25,3 +25,7 @@ MODBUS_TCP_GREETING_TIMEOUT = 0.5
 # Etera expander module constants
 
 MIXING_VALVE_HOLD_TIME = 120  # time between motor movements in seconds
+MIXING_VALVE_TRAVEL_TIME = 120  # seconds from fully closed to fully open
+# MA_2001 "Funkcija delovanja": the heat pump is heating sanitary water, so the heating
+# loops are not circulating.
+WORKING_FUNCTION_SANITARY_WATER = 1

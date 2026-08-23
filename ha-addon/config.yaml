@@ -85,6 +85,7 @@ options:
     loop_sensors: [1, 0, 6, 5]
     loop_temperature: [25.0, 25.0, 25.0, 25.0]
     heating_curve_coefficient: 0.25
+    exercise_valves_during_dhw: false
     solar_pump_operation: 1
     solar_pump_difference_on: 8.0
     solar_pump_difference_off: 3.0
@@ -161,6 +162,7 @@ schema:
     loop_temperature:
       - float
     heating_curve_coefficient: float
+    exercise_valves_during_dhw: bool
     solar_pump_operation: int(0,1)
     solar_pump_difference_on: float
     solar_pump_difference_off: float

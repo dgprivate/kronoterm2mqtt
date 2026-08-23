@@ -80,6 +80,11 @@ pump hysteresis. The fields are documented where they are defined, in
 `kronoterm2mqtt/user_settings.py`, because their meaning depends on how the board is
 wired.
 
+`exercise_valves_during_dhw` (default `false`) sweeps every mixing valve fully closed and
+back to its previous position once per stretch of sanitary water heating (MA_2001 = 1),
+so a valve that would otherwise stand still for a mild week does not seize. The loops do
+not circulate then, so no room notices.
+
 ### `[systemd]`
 
 Written by `systemd-setup`; edit only if the unit lives somewhere unusual.
