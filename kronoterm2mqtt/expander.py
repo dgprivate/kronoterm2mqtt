@@ -44,6 +44,7 @@ class ExpanderMqttHandler:
         self.mqtt_device: MqttDevice | None = None
         self.sensors: list[Sensor] = list()  # loop[0:4], collector, solar tank up/down, DHW, DHW circulation
         self.relays: list[BinarySensor] = list()
+        self.loop_target_sensors: list[Sensor] = list()  # What the heating curve asks for
         self.switch_intertank: Switch = None
         self.loop_states: list[Select] = list()  # Loop names from sensors
         self.mixing_valve_sensors: list[Sensor] = list()  # Position sensors in percentage
@@ -138,6 +139,21 @@ class ExpanderMqttHandler:
                     suggested_display_precision=1,
                 )
                 self.mixing_valve_sensors.append(mixing_valve_sensor)
+                # The temperature the heating curve is aiming this loop at. It is
+                # computed here from the outside temperature and the loop's own
+                # settings, and nothing else publishes it, so without this sensor the
+                # only way to see why a valve moved is to read the log.
+                self.loop_target_sensors.append(
+                    Sensor(
+                        device=self.mqtt_device,
+                        name='Ciljna temperatura ' + name,
+                        uid=slugify('ciljna temperatura ' + name, '_').lower(),
+                        device_class='temperature',
+                        state_class='measurement',
+                        unit_of_measurement='°C',
+                        suggested_display_precision=1,
+                    )
+                )
                 mixing_valve_sensor.set_state(0)
                 mixing_valve_sensor.publish(self.mqtt_client)
                 self.taskgroup.create_task(self.mixing_valve_motor_close(i, 120))
@@ -358,6 +374,19 @@ class ExpanderMqttHandler:
                                 await self.etera.set_relay(heat_loop, True)
                             # Move motors according to the last reading
                             loop_temperature = self.sensors[heat_loop].state
+                            temp_at_zero = settings.loop_temperature[heat_loop]
+                            target_loop_temperature = self.get_loop_target_temperature(
+                                heat_loop,
+                                temp_at_zero,
+                                outside_temperature,
+                                settings.heating_curve_coefficient,
+                                loop_temperature_offset_in_eco_mode,
+                                loop_operation_status_on_schedule,
+                            )
+                            target_sensor = self.loop_target_sensors[heat_loop]
+                            target_sensor.set_state(target_loop_temperature)
+                            target_sensor.publish(self.mqtt_client)
+
                             if loop_temperature > 40.0:  # rapid loop shutdown
                                 self.loop_states[heat_loop].set_state('Izklop')
                                 await self.etera.set_relay(heat_loop, False)
@@ -379,15 +408,6 @@ class ExpanderMqttHandler:
                                 time.monotonic() - self.mixing_valve_timer[heat_loop] > MIXING_VALVE_HOLD_TIME
                             ):  # can move motor?
                                 self.mixing_valve_timer[heat_loop] = time.monotonic()  # reset timer
-                                temp_at_zero = settings.loop_temperature[heat_loop]
-                                target_loop_temperature = self.get_loop_target_temperature(
-                                    heat_loop,
-                                    temp_at_zero,
-                                    outside_temperature,
-                                    settings.heating_curve_coefficient,
-                                    loop_temperature_offset_in_eco_mode,
-                                    loop_operation_status_on_schedule,
-                                )
                                 # print(f"DBG: Loop {heat_loop}: target -> {target_loop_temperature} "
                                 #       f"({self.loop_states[heat_loop].state})")
                                 if loop_temperature >= target_loop_temperature:  # close the mixing valve
