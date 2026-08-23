@@ -30,10 +30,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
 
       - name: Initialise CodeQL
-        uses: github/codeql-action/init@42947a340483f03ba47bb1a039b2c519aab3df85  # v3
+        uses: github/codeql-action/init@4c0873ef8656cb3c50b3f42fb63bc1ade0cfa827  # v4
         with:
           languages: python
           queries: security-extended
 
       - name: Analyse
-        uses: github/codeql-action/analyze@42947a340483f03ba47bb1a039b2c519aab3df85  # v3
+        uses: github/codeql-action/analyze@4c0873ef8656cb3c50b3f42fb63bc1ade0cfa827  # v4

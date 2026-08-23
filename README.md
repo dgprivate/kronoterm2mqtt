@@ -717,6 +717,8 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
+* [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.20...main)
+  * 2026-08-23 - Draw the add-on a pixel-art icon and logo
 * [v0.1.20](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.19...v0.1.20)
   * 2026-08-22 - Point Home Assistant OS users at the add-on from the image page
   * 2026-08-22 - Release 0.1.20
@@ -770,6 +772,9 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
   * 2026-04-10 - Limit CLI  base utilities version to support Python 3.11 at least
   * 2026-04-10 - Limit base utilities version to support Python 3.11 at least
   * 2026-04-10 - Upgrade for vulnerabilities
+
+<details><summary>Expand older history entries ...</summary>
+
 * [v0.1.17](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.16...v0.1.17)
   * 2026-03-30 - Change pyetera CamelCase to underscore
   * 2026-03-30 - Update github tests - indent
@@ -799,9 +804,6 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
   * 2025-10-05 - Ignore pip 15.2 audit GHSA-4xh5-x5gv-qwph problem
   * 2025-09-28 - Link to docs under issue #2
   * 2025-09-28 - Glued image of HASS screenshots
-
-<details><summary>Expand older history entries ...</summary>
-
 * [v0.1.16](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.15...v0.1.16)
   * 2025-09-27 - Release 0.1.16
   * 2025-09-27 - Add a note on USB problem at exception
