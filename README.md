@@ -657,12 +657,12 @@ WantedBy=multi-user.target
 - [x] `switch` to turn on at least DHW circulation pump manually in Home Assistant and then programatically since 6 transitions provided by the heat pump is too limited
 - [x] `binary_sensor` to show some two-state states
 - [x] `binary_sensor` to decode binary statuses in `enum` like manner combined. For example error messages or "additional activations".
-- [ ] Upgrade [ha-services](https://github.com/jedie/ha-services) with `number` component allowing change of some numeric parameters (set temperatures, etc.).
+- [x] `number` component allowing change of some numeric parameters (set temperatures, etc.). Implemented here in `kronoterm2mqtt/number.py`, because [ha-services](https://github.com/jedie/ha-services) has no number component; written so it can move upstream unchanged.
 - [ ] Display the heat pump state using ThermIQ as an example.
 - [ ] Expander should full cycle mixing motors when DHW is working.
 - [ ] Add save state to settings and sensors for computed reference temperatures
-- [ ] Enable/disable heat pump switch.
-- [ ] Add intertank pump switch
+- [x] Enable/disable heat pump switch (`System power`, MA_2012).
+- [x] Add intertank pump switch (expander, `Cirkulacija med bojlerjema`)
 
 # dev CLI
 
@@ -718,6 +718,7 @@ usage: ./dev-cli.py [-h] {coverage,expander-loop,expander-motors,expander-relay,
 [comment]: <> (✂✂✂ auto generated history start ✂✂✂)
 
 * [**dev**](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.20...main)
+  * 2026-08-23 - Update the pins Renovate was holding for Monday
   * 2026-08-23 - Draw the add-on a pixel-art icon and logo
 * [v0.1.20](https://github.com/kosl/kronoterm2mqtt/compare/v0.1.19...v0.1.20)
   * 2026-08-22 - Point Home Assistant OS users at the add-on from the image page

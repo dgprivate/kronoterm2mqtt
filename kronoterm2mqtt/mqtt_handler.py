@@ -10,6 +10,7 @@ from ha_services.mqtt4homeassistant.components.binary_sensor import BinarySensor
 from ha_services.mqtt4homeassistant.components.select import Select
 from ha_services.mqtt4homeassistant.components.sensor import Sensor
 from ha_services.mqtt4homeassistant.components.switch import Switch
+from ha_services.mqtt4homeassistant.data_classes import NO_STATE
 from ha_services.mqtt4homeassistant.device import BaseMqttDevice, MqttDevice
 from ha_services.mqtt4homeassistant.utilities.string_utils import slugify
 from paho.mqtt.client import Client
@@ -30,6 +31,7 @@ from kronoterm2mqtt.constants import (
 from kronoterm2mqtt.expander import ExpanderMqttHandler
 from kronoterm2mqtt.health import HealthState
 from kronoterm2mqtt.mqtt_connection import get_connected_client
+from kronoterm2mqtt.number import Number
 from kronoterm2mqtt.user_settings import UserSettings
 
 
@@ -60,6 +62,7 @@ class KronotermMqttHandler:
         self.address_ranges: list[tuple[int, int]] = list()
         self.registers: dict[int] = dict()
         self.switches: dict[int, Switch] = dict()
+        self.numbers: dict[int, tuple[Number, Decimal]] = dict()
         self.selects: dict[int, tuple[Select, dict[str, list[Any]]]] = dict()
 
     def __enter__(self):
@@ -77,11 +80,11 @@ class KronotermMqttHandler:
 
         if self.modbus_client:
             self.modbus_client.close()
-            
+
         if self.mqtt_client:
             self.mqtt_client.loop_stop()
             self.mqtt_client.disconnect()
-            
+
         BaseMqttDevice.device_uids = set()  # Reset
         BaseMqttDevice.components = {}  # Global registry of all components
 
@@ -164,6 +167,25 @@ class KronotermMqttHandler:
                 )
                 self.switches[address] = switch
 
+        for parameter in definitions.get('number', []):
+            address = parameter['register'] - 1  # KRONOTERM MA_numbering is one-based in documentation!
+            scale = Decimal(str(parameter['scale']))
+            self.numbers[address] = (
+                Number(
+                    device=self.main_device,
+                    name=parameter['name'],
+                    uid=slugify(parameter['name'], '_').lower(),
+                    min_value=parameter['min'],
+                    max_value=parameter['max'],
+                    step=parameter['step'],
+                    device_class=parameter['device_class'] or None,
+                    unit_of_measurement=parameter['unit_of_measurement'] or None,
+                    suggested_display_precision=abs(scale.as_tuple().exponent),
+                    callback=self.number_callback,
+                ),
+                scale,
+            )
+
         if 'select' in definitions:
             select_definitions = definitions['select']
             for parameter in select_definitions:
@@ -186,6 +208,7 @@ class KronotermMqttHandler:
             + list(self.enum_sensors.keys())
             + list(self.switches.keys())
             + list(self.selects.keys())
+            + list(self.numbers.keys())
         )
         self.address_ranges = list(self.ranges(list(addresses)))
         if self.verbosity > 1:
@@ -247,6 +270,47 @@ class KronotermMqttHandler:
             component.publish_state(client)
         else:
             logger.error(f'Failed to write register for {component.name}')
+
+    def number_callback(self, *, client: Client, component: Number, old_state, new_state) -> None:
+        """Write a setting the user changed in Home Assistant to its register."""
+        logger.info(f'{component.name} changed: {old_state!r} -> {new_state!r}')
+
+        address = None
+        scale = None
+        for candidate, (number, number_scale) in self.numbers.items():
+            if number is component:
+                address, scale = candidate, number_scale
+                break
+
+        if address is None:
+            logger.error(f'Could not find the register for {component.name}')
+            return
+
+        if not component.min_value <= new_state <= component.max_value:
+            logger.error(
+                f'{component.name}: {new_state} is outside'
+                f' {component.min_value} ... {component.max_value}, not writing it'
+            )
+            self.republish(component, client)
+            return
+
+        value = int(Decimal(str(new_state)) / scale)
+        # The heat pump reports negatives in two's complement, and expects them the same
+        # way: the ECO offsets are the settings this matters for.
+        success = self.write_register(address=address, value=value & 0xFFFF)
+
+        if success:
+            component.set_state(new_state)
+            component.publish_state(client)
+        else:
+            logger.error(f'Failed to write register for {component.name}')
+            self.republish(component, client)
+
+    @staticmethod
+    def republish(component: Number, client: Client) -> None:
+        """Send the value the heat pump still has, so Home Assistant stops showing the new one."""
+        if component.state is not NO_STATE:
+            component.publish_state(client)
 
     def select_callback(self, *, client: Client, component: Select, old_state: str, new_state: str):
         """
@@ -435,26 +499,34 @@ class KronotermMqttHandler:
                 sensor.set_state(display_value)
                 sensor.publish(self.mqtt_client)
                 published += 1
+            for address, (number, scale) in self.numbers.items():
+                if address not in self.registers:
+                    continue
+                number.set_state(float(scale * Decimal(self.registers[address])))
+                number.publish(self.mqtt_client)
+                published += 1
             for address, switch in self.switches.items():
                 if address not in self.registers:
                     continue
                 switch.set_state(switch.ON if self.registers[address] else switch.OFF)
                 switch.publish(self.mqtt_client)
                 published += 1
-                for address, (select, _) in self.selects.items():
-                    if address in self.registers and address in self.selects:
-                        _, options = self.selects[address]
-                        register_value = self.registers[address]
-                        # Convert register value to display value
-                        display_value = None
-                        for index, key in enumerate(options['keys']):
-                            if register_value == key:
-                                display_value = options['values'][index]
-                                break
-                        if display_value is not None:
-                            select.set_state(display_value)
-                            select.publish(self.mqtt_client)
-                            published += 1
+            for address, (select, options) in self.selects.items():
+                if address not in self.registers:
+                    continue
+                register_value = self.registers[address]
+                # Convert register value to display value
+                display_value = None
+                for index, key in enumerate(options['keys']):
+                    if register_value == key:
+                        display_value = options['values'][index]
+                        break
+                if display_value is None:
+                    logger.warning(f'Register {address} has value {register_value}, which is not in the definitions')
+                    continue
+                select.set_state(display_value)
+                select.publish(self.mqtt_client)
+                published += 1
 
             if self.health is not None and published:
                 self.health.record_publish(published_count=published)
@@ -466,14 +538,14 @@ class KronotermMqttHandler:
             elif self.expander is not None:
                 try:
                     await self.expander.update_sensors_and_control(
-                      outside_temperature=0.1 * self.registers[2102],  # outside temperature
-                      current_desired_dhw_temperature=0.1 * self.registers[2023],  # Current desired DHW temperature
-                      additional_source_enabled=self.registers[2015] > 0,  # Additional source activated
-                      loop_circulation_status=self.registers[2044] > 0,  # Loop 1 circulation pump status
-                      # Loop 1 temperature offset in ECO mode
-                      loop_temperature_offset_in_eco_mode=0.1 * self.registers[2046],
-                      loop_operation_status_on_schedule=self.registers[2043],  # Loop 1 operation status on schedule
-                      working_function=self.registers[2000],  # Heat pump heating=0, standby=5
+                        outside_temperature=0.1 * self.registers[2102],  # outside temperature
+                        current_desired_dhw_temperature=0.1 * self.registers[2023],  # Current desired DHW temperature
+                        additional_source_enabled=self.registers[2015] > 0,  # Additional source activated
+                        loop_circulation_status=self.registers[2044] > 0,  # Loop 1 circulation pump status
+                        # Loop 1 temperature offset in ECO mode
+                        loop_temperature_offset_in_eco_mode=0.1 * self.registers[2046],
+                        loop_operation_status_on_schedule=self.registers[2043],  # Loop 1 operation status on schedule
+                        working_function=self.registers[2000],  # Heat pump heating=0, standby=5
                     )
                 except asyncio.CancelledError as e:
                     logger.warning(f'Expander update cancelled! {e}')
