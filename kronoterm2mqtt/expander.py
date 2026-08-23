@@ -13,7 +13,11 @@ from ha_services.mqtt4homeassistant.device import MqttDevice
 from ha_services.mqtt4homeassistant.utilities.string_utils import slugify
 from paho.mqtt.client import Client
 
-from kronoterm2mqtt.constants import MIXING_VALVE_HOLD_TIME
+from kronoterm2mqtt.constants import (
+    MIXING_VALVE_HOLD_TIME,
+    MIXING_VALVE_TRAVEL_TIME,
+    WORKING_FUNCTION_SANITARY_WATER,
+)
 from kronoterm2mqtt.pyetera_uart_bridge import EteraUartBridge
 from kronoterm2mqtt.user_settings import UserSettings
 
@@ -51,6 +55,7 @@ class ExpanderMqttHandler:
         self.mixing_valve_timer: list[float] = list()  # Measuring time from last move
         self.expedited_heating_timer: list[float] = list()  # Measuring time from start of expedited heating
         self.last_working_function: int = 5  # Heat pump in 5=Standby
+        self.valves_exercised: bool = False  # Once per stretch of sanitary water heating
 
     class WorkingMode(Enum):
         OFF = 'Izklop'
@@ -197,6 +202,32 @@ class ExpanderMqttHandler:
         except EteraUartBridge.DeviceException as e:
             print(f'Motor #{heating_loop_number} move error', e)
 
+    async def exercise_mixing_valve(self, heating_loop_number: int) -> None:
+        """Run a valve through its range and put it back where it was.
+
+        A mixing valve that spends a mild week at the same position can seize. While the
+        heat pump is heating sanitary water the loops are not circulating, so a full
+        sweep changes no room temperature - which is the only time it is free.
+        """
+        position = self.mixing_valve_sensors[heating_loop_number].state
+        await self.mixing_valve_motor_close(heating_loop_number, MIXING_VALVE_TRAVEL_TIME, override=True)
+        if isinstance(position, (int, float)) and position > 0:
+            duration = position / 100 * MIXING_VALVE_TRAVEL_TIME
+            await self.mixing_valve_motor_open(heating_loop_number, duration, override=True)
+
+    def exercise_valves(self, working_function: int) -> None:
+        """Start the sweep once per stretch of sanitary water heating, if it is wanted."""
+        if working_function != WORKING_FUNCTION_SANITARY_WATER:
+            self.valves_exercised = False  # Ready for the next stretch
+            return
+        if self.valves_exercised or not self.user_settings.custom_expander.exercise_valves_during_dhw:
+            return
+
+        self.valves_exercised = True
+        print(f'Sanitary water heating: exercising {len(self.mixing_valve_sensors)} mixing valves')
+        for heating_loop_number in range(len(self.mixing_valve_sensors)):
+            self.taskgroup.create_task(self.exercise_mixing_valve(heating_loop_number))
+
     def loop_switch_callback(self, *, client: Client, component: Select, old_state: str, new_state: str):
         """Switches on/off (manually) loop."""
         loop_number = self.loop_states.index(component)
@@ -302,6 +333,8 @@ class ExpanderMqttHandler:
                     select.set_state(self.WorkingMode.OFF.value)
                     self.expedited_heating_timer[i] = None
                     print(f'Expedited heating for {select.name} is over!')
+
+            self.exercise_valves(working_function)
 
             temperatures = await self.etera.get_temperatures()
             ids = settings.loop_sensors + settings.solar_sensors

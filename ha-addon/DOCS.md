@@ -81,6 +81,11 @@ For the do-it-yourself expander module with DS18S20 thermometers that drives ext
 heating loops and solar pumps. Leave `module_enabled` off if you do not have one — the
 rest of the section is then ignored.
 
+`exercise_valves_during_dhw` runs each mixing valve fully closed and back to where it
+was, once per stretch of sanitary water heating. A valve that spends a mild week at one
+position can seize, and while hot water is being made the loops are not circulating, so
+the sweep changes no room temperature. Off by default.
+
 The lists are read positionally: the first entry of `loop_operation`, `loop_sensors`
 and `loop_temperature` all describe loop 1. `sensor_names` names the thermometers in
 the order they are wired, and an empty entry in `relay_names` means that relay is

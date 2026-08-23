@@ -58,9 +58,7 @@ class ExpanderTestCase(IsolatedAsyncioTestCase):
         self.user_settings = UserSettings()
         self.user_settings.custom_expander.module_enabled = True
         self.mqtt_client = make_mqtt_client()
-        self.handler = ExpanderMqttHandler(
-            mqtt_client=self.mqtt_client, user_settings=self.user_settings, verbosity=0
-        )
+        self.handler = ExpanderMqttHandler(mqtt_client=self.mqtt_client, user_settings=self.user_settings, verbosity=0)
         self.main_device = MqttDevice(name='Heat Pump', uid='kronoterm', manufacturer='KRONOTERM')
 
         with patch('kronoterm2mqtt.expander.EteraUartBridge', FakeEtera):
@@ -227,6 +225,71 @@ class PublishedTargetTemperatureTestCase(ExpanderTestCase):
         await self.control(outside_temperature=5.0)
 
         self.assertEqual(self.published(), 31.0)
+
+
+class ValveExerciseTestCase(ExpanderTestCase):
+    """Running the mixing valves through their range while the heat pump makes hot water."""
+
+    SANITARY_WATER = 1  # MA_2001 "Funkcija delovanja"
+
+    def moves_of(self, loop_number: int):
+        return [move for move in self.etera.moves if move[0] == loop_number]
+
+    async def test_it_does_nothing_unless_it_is_asked_for(self):
+        """Off by default: it moves real valves on someone's heating system."""
+        self.assertFalse(self.settings().exercise_valves_during_dhw)
+
+        await self.control(working_function=self.SANITARY_WATER)
+
+        self.assertEqual(self.etera.moves, [])
+
+    async def test_each_valve_closes_fully_and_returns_to_where_it_was(self):
+        self.settings().exercise_valves_during_dhw = True
+        self.handler.mixing_valve_sensors[0].set_state(40.0)
+
+        await self.control(working_function=self.SANITARY_WATER)
+
+        directions = [(move[1], move[2]) for move in self.moves_of(0)]
+        # Fully closed, then back to 40% of the travel time
+        self.assertEqual(
+            directions, [(FakeEtera.Direction.COUNTER_CLOCKWISE, 120_000), (FakeEtera.Direction.CLOCKWISE, 48_000)]
+        )
+        self.assertAlmostEqual(self.handler.mixing_valve_sensors[0].state, 40.0)
+
+    async def test_a_valve_that_is_already_shut_only_closes(self):
+        self.settings().exercise_valves_during_dhw = True
+        self.handler.mixing_valve_sensors[0].set_state(0.0)
+
+        await self.control(working_function=self.SANITARY_WATER)
+
+        self.assertEqual(len(self.moves_of(0)), 1)
+
+    async def test_it_happens_once_per_stretch_of_hot_water(self):
+        self.settings().exercise_valves_during_dhw = True
+
+        await self.control(working_function=self.SANITARY_WATER)
+        first = len(self.etera.moves)
+        await self.control(working_function=self.SANITARY_WATER)
+
+        self.assertEqual(len(self.etera.moves), first, 'the valves were swept twice in one stretch')
+
+    async def test_the_next_stretch_sweeps_again(self):
+        self.settings().exercise_valves_during_dhw = True
+        await self.control(working_function=self.SANITARY_WATER)
+        self.etera.moves.clear()
+
+        await self.control(working_function=0)  # Back to heating
+        self.etera.moves.clear()
+        await self.control(working_function=self.SANITARY_WATER)
+
+        self.assertTrue(self.etera.moves)
+
+    async def test_heating_is_never_interrupted_for_it(self):
+        self.settings().exercise_valves_during_dhw = True
+
+        await self.control(working_function=0)  # Heating, not hot water
+
+        self.assertFalse(self.handler.valves_exercised)
 
 
 class SolarPumpTestCase(ExpanderTestCase):

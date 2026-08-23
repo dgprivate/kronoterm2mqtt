@@ -659,7 +659,7 @@ WantedBy=multi-user.target
 - [x] `binary_sensor` to decode binary statuses in `enum` like manner combined. For example error messages or "additional activations".
 - [x] `number` component allowing change of some numeric parameters (set temperatures, etc.). Implemented here in `kronoterm2mqtt/number.py`, because [ha-services](https://github.com/jedie/ha-services) has no number component; written so it can move upstream unchanged.
 - [x] Display the heat pump state, the way ThermIQ ships a dashboard rather than a list of entity names: [`ha-dashboard.yaml`](ha-dashboard.yaml), generated from the register definitions with `./dev-cli.py dashboard` and pasted into Home Assistant under **Settings -> Dashboards -> Add dashboard -> Raw configuration editor**. Settings first, then readings, grouped by what they are about.
-- [ ] Expander should full cycle mixing motors when DHW is working.
+- [x] Expander cycles the mixing motors while sanitary water is being heated: `exercise_valves_during_dhw` in `[custom_expander]` sweeps each valve fully closed and back to where it was, once per stretch, so a valve that would stand still for a mild week does not seize. Off by default.
 - [x] Sensors for computed reference temperatures: every mixing-valve loop publishes the temperature its heating curve is asking for, each cycle. Saving that back into the settings file is deliberately not done - the container mounts the settings read-only, and a value recomputed from the weather every cycle is not a setting.
 - [x] Enable/disable heat pump switch (`System power`, MA_2012).
 - [x] Add intertank pump switch (expander, `Cirkulacija med bojlerjema`)
