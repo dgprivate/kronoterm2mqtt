@@ -660,7 +660,7 @@ WantedBy=multi-user.target
 - [x] `number` component allowing change of some numeric parameters (set temperatures, etc.). Implemented here in `kronoterm2mqtt/number.py`, because [ha-services](https://github.com/jedie/ha-services) has no number component; written so it can move upstream unchanged.
 - [ ] Display the heat pump state using ThermIQ as an example.
 - [ ] Expander should full cycle mixing motors when DHW is working.
-- [ ] Add save state to settings and sensors for computed reference temperatures
+- [x] Sensors for computed reference temperatures: every mixing-valve loop publishes the temperature its heating curve is asking for, each cycle. Saving that back into the settings file is deliberately not done - the container mounts the settings read-only, and a value recomputed from the weather every cycle is not a setting.
 - [x] Enable/disable heat pump switch (`System power`, MA_2012).
 - [x] Add intertank pump switch (expander, `Cirkulacija med bojlerjema`)
 
