@@ -72,7 +72,7 @@ jobs:
         ./dev-cli.py coverage
 
     - name: 'Upload coverage report'
-      uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238  # v4
+      uses: codecov/codecov-action@e53489f4d376d79066609109e7a95a29eb3740b1  # v7.0.0
       # https://github.com/marketplace/actions/codecov
       with:
         # https://docs.codecov.com/docs/codecov-tokens#example-github-actions--official-codecov-action
