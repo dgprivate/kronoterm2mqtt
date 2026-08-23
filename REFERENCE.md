@@ -104,12 +104,22 @@ homeassistant/binary_sensor/kronoterm/kronoterm-defrosting/state     OFF
 homeassistant/switch/kronoterm/kronoterm-system_power/state          ON
 homeassistant/switch/kronoterm/kronoterm-system_power/command        OFF   <- written by Home Assistant
 homeassistant/select/kronoterm/kronoterm-operating_program_selection/state  ECO
+homeassistant/number/kronoterm/kronoterm-desired_dhw_temperature/state      47.0
+homeassistant/number/kronoterm/kronoterm-desired_dhw_temperature/command    48.5  <- written by Home Assistant
 ```
 
 `<entity>` is the definition's `name`, lower-cased and slugified. Sensors publish the
 scaled number, binary sensors `ON`/`OFF`, enum sensors and selects the mapped string.
-Switches and selects also subscribe to `/command` and write the register that the option
-maps to.
+Switches, selects and numbers also subscribe to `/command` and write the register that
+the value maps to.
+
+Numbers are the registers the manufacturer's Modbus documentation marks RW: the sanitary
+water and buffer setpoints, the four heating loops, the pool, the ECO and comfort
+offsets, and the system temperature correction. Each carries the range the documentation
+gives, and a value outside it is refused before anything is written - the current value
+is published again so Home Assistant stops showing the rejected one. Negative settings,
+which the offsets are, are written in two's complement, the way the heat pump reports
+them.
 
 ## Output: health endpoint
 
