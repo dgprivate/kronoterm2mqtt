@@ -191,6 +191,44 @@ class TargetTemperatureTestCase(ExpanderTestCase):
         self.assertEqual(self.target(outside_temperature=-20.0), 10.0)
 
 
+class PublishedTargetTemperatureTestCase(ExpanderTestCase):
+    """The temperature the heating curve asks for, published so a valve move can be explained."""
+
+    def published(self, loop_number: int = 0):
+        return self.handler.loop_target_sensors[loop_number].state
+
+    async def test_every_loop_with_a_valve_has_one(self):
+        with_valves = [name for name in self.settings().relay_names[:4] if name]
+
+        self.assertEqual(len(self.handler.loop_target_sensors), len(with_valves))
+        first = self.handler.loop_target_sensors[0]
+        self.assertEqual(first.name, 'Ciljna temperatura ' + self.settings().sensor_names[0])
+
+    async def test_it_follows_the_outside_temperature(self):
+        await self.control(outside_temperature=-8.0)
+
+        # 25 at 0 °C, plus 8 * 0.25
+        self.assertAlmostEqual(self.published(), 27.0)
+
+    async def test_it_is_published_even_while_the_valves_are_holding_still(self):
+        """The valve may only move every few minutes; the target changes with the weather."""
+        await self.control(outside_temperature=0.0)
+        self.handler.mixing_valve_timer = [time.monotonic()] * len(self.handler.mixing_valve_timer)
+        self.etera.moves.clear()
+
+        await self.control(outside_temperature=-20.0)
+
+        self.assertEqual(self.etera.moves, [])  # Nothing moved
+        self.assertAlmostEqual(self.published(), 30.0)  # But the target is current
+
+    async def test_an_expedited_loop_reports_the_temperature_it_is_held_at(self):
+        self.handler.loop_states[0].set_state(self.handler.WorkingMode.EXPEDITED.value)
+
+        await self.control(outside_temperature=5.0)
+
+        self.assertEqual(self.published(), 31.0)
+
+
 class SolarPumpTestCase(ExpanderTestCase):
     def set_temperatures(self, collector: float, tank_bottom: float):
         settings = self.settings()
