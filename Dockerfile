@@ -21,7 +21,7 @@ ARG PYTHON_IMAGE=python@sha256:05b2b8b732ecd268fee8727a369f936f022d1321b59befd13
 ARG SYFT_IMAGE=anchore/syft@sha256:678bfa565b60f747aac0f8e964fe5588a24445b8d0a480e91f6efd70020dfbb0
 # uv 0.12.5, copied from its own image instead of installed with pip: a digest is
 # a stronger statement than a version, and it keeps pip out of the builder.
-ARG UV_IMAGE=ghcr.io/astral-sh/uv@sha256:e85be844203885286c60ffad8a858d48afb6c5a5c237ca0e67f12e74b8f174b1
+ARG UV_IMAGE=ghcr.io/astral-sh/uv@sha256:32a7bb39b496babbd997b0a39a4d66c126bdaf5661b302bf6f06abda8deca6ff
 ARG APP_UID=65532
 ARG APP_GID=65532
 # Traceability: pass these in to record where the image came from, e.g.
